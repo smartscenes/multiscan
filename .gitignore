@@ -127,3 +127,46 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Generated log file
+*.log
+
+# vscode
+.DS_Store
+# other files
+*.zip
+*datasets/*
+bin
+.idea/
+*.iml
+*.classes
+*.jar
+*.war
+*.ear
+target
+.settings
+.classpath
+.project
+.metadata/
+classes/
+logs/
+*.log
+rebel.xml
+data/
+result/
+*.DS_Store
+*.vscode
+*test*
+*__pycache__
+package-lock.json
+data
+vendor/
+staging
+node_modules/
+server/package.json
+*.cam
+
+# meshroom 
+meshroom/
+Meshroom-2020.1.0/
+

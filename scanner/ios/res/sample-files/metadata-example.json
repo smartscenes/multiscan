@@ -1,0 +1,75 @@
+{
+  "streams" : [
+    {
+      "extrinsics" : null,
+      "frequency" : 60,
+      "number_of_frames" : 354,
+      "id" : "color_back_1",
+      "file_extension" : "mp4",
+      "intrinsics" : [
+        1613.7047119140625,
+        0,
+        0,
+        0,
+        1613.7047119140625,
+        0,
+        941.3975830078125,
+        727.03411865234375,
+        1
+      ],
+      "type" : "color_camera",
+      "resolution" : [
+        1440,
+        1920
+      ],
+      "encoding" : "h264"
+    },
+    {
+      "extrinsics" : null,
+      "frequency" : 60,
+      "number_of_frames" : 354,
+      "id" : "depth_back_1",
+      "file_extension" : "depth.zlib",
+      "intrinsics" : null,
+      "type" : "lidar_sensor",
+      "resolution" : [
+        192,
+        256
+      ],
+      "encoding" : "float16_zlib"
+    },
+    {
+      "id" : "confidence_map",
+      "encoding" : "uint8_zlib",
+      "number_of_frames" : 354,
+      "type" : "confidence_map",
+      "frequency" : 60,
+      "file_extension" : "confidence.zlib"
+    },
+    {
+      "id" : "camera_info_color_back_1",
+      "encoding" : "jsonl",
+      "number_of_frames" : 354,
+      "type" : "camera_info",
+      "frequency" : 60,
+      "file_extension" : "jsonl"
+    }
+  ],
+  "device" : {
+    "id" : "2CE7F809-8FA9-42BB-BE73-23C5C30C7D07",
+    "type" : "iPad8,10",
+    "name" : "multiscan’s iPad Pro"
+  },
+  "scene" : {
+    "type" : "Bookstore \/ Library",
+    "gps_location" : [
+      49.227630615234375,
+      -123.01149848799666
+    ],
+    "description" : "Test"
+  },
+  "number_of_files" : 5,
+  "user" : {
+    "name" : "J X"
+  }
+}

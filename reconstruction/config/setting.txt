@@ -1,0 +1,5 @@
+io {
+  color_folder: "/home/sam/Development/Lab/ScanNet/scans/scene0001_00/images/color"
+  depth_folder: "/home/sam/Development/Lab/ScanNet/scans/scene0001_00/images/depth"
+  intrinsic_path: "/home/sam/Development/Lab/ScanNet/scans/scene0001_00/images/intrinsic/intrinsic_depth.json"
+}
