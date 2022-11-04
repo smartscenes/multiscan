@@ -1,0 +1,32 @@
+{
+  "host": "localhost",
+  "port": 3030,
+  "nedb": "../data/",
+  "public": "../public/",
+  "settings": {
+    "modelViewerUrl": "https://aspis.cmpt.sfu.ca/scene-toolkit/model-viewer",
+    "segmentAnnotatorUrl": "https://aspis.cmpt.sfu.ca/stk-multiscan/multiscan/segment-annotator",
+    "obbAnnotatorUrl": "https://aspis.cmpt.sfu.ca/stk-multiscan/multiscan/scan-obb-aligner",
+    "articulationAnnotatorUrl": "https://aspis.cmpt.sfu.ca/stk-multiscan/motion-annotator?",
+    "segmentAnnotationsUrl": "http://spathi.cmpt.sfu.ca/scene-toolkit/scans/multiscan/grouped?annotate=true",
+    "segmentAnnotationViewerUrl": "http://localhost/scans/segment-annotations/view",
+    "scanFilesPath": "http://spathi.cmpt.sfu.ca/projects/multiscan/staging",
+    "scansOutput": "outputs",
+    "scansPaths": {
+      "default": "/data/multiscan/scans"
+    }
+  },
+  "auth": {
+    "token": {
+      "secret": ""
+    },
+    "local": {},
+    "github": {
+      "clientID": "your github client id",
+      "clientSecret": "your github client secret",
+      "permissions": {
+        "scope": []
+      }
+    }
+  }
+}

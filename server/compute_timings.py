@@ -6,14 +6,14 @@
 import argparse
 import collections
 import csv
-import os
 import logging
+import os
 import re
 import subprocess
 import sys
 import traceback
-
 from datetime import timedelta
+
 import pytimeparse
 
 FORMAT = '%(asctime)-15s [%(levelname)s] %(message)s'
@@ -32,7 +32,7 @@ def getTotal(times):
 def getRecord(times, name, n=None):
     if n is not None:
         secs = 0
-        for i in range(1, n+1):
+        for i in range(1, n + 1):
             r = times.get('%s%d' % (name, i))
             if r is not None:
                 secs += r.get('secs')
@@ -58,8 +58,7 @@ def computeTimings(input):
     timePattern = re.compile('.*Time=([0-9.:]+)\s+for\s+(.*)')
     times = collections.OrderedDict()
     for timing in timings:
-        # print timing
-        print(timing)
+        # print(timing)
         m = timePattern.match(timing.decode("utf-8"))
         if m is not None:
             time = m.group(1)
@@ -114,4 +113,5 @@ def main():
     computeAndOutputTimings(vars(args))
 
 
-if __name__ == "__main__": main()
+if __name__ == "__main__":
+    main()

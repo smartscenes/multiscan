@@ -8,6 +8,7 @@
 
 import UIKit
 
+/// UI class for gallery activity
 class LibraryTableViewController: UITableViewController {
     
     private let fileManager = FileManager.default
@@ -69,8 +70,10 @@ class LibraryTableViewController: UITableViewController {
     
     private func loadFiles() {
         let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
+		print(documentsURL)
         do {
             fileURLs = try fileManager.contentsOfDirectory(at: documentsURL, includingPropertiesForKeys: nil)
+			fileURLs.sort(by: {$0.absoluteString.compare($1.absoluteString, options: .numeric) == .orderedDescending})
             
         } catch {
             print("Error while enumerating files \(documentsURL.path): \(error.localizedDescription)")
@@ -79,22 +82,25 @@ class LibraryTableViewController: UITableViewController {
 }
 
 extension LibraryTableViewController: LibraryTableViewCellDelegate {
-    
+    /// reload files after files are deleted successfully
     func deleteSuccess(recordingId: String) {
         loadFiles()
         tableView.reloadData()
     }
     
+    /// display a toast when files are not deleted due to errors
     func deleteFailed(recordingId: String) {
         loadFiles()
         tableView.reloadData()
         Helper.showToast(controller: self, message: "Failed to delete \(recordingId)", seconds: 1)
     }
     
+    /// display a toast message when files did not upload to server due to errors
     func didCompletedUploadWithError(recordingId: String) {
         Helper.showToast(controller: self, message: "Failed to upload \(recordingId)", seconds: 1)
     }
     
+    /// display a toast message when files are uploaded to server successfully
     func didCompletedUploadWithoutError(recordingId: String) {
         Helper.showToast(controller: self, message: "All files in \(recordingId) have been uploaded", seconds: 1)
     }

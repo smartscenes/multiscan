@@ -8,6 +8,7 @@
 
 import UIKit
 
+/// manage the configuration activity for the app
 class ConfigurationViewController: UIViewController {
     
     private let sceneTypes = Constants.sceneTypes
@@ -18,8 +19,11 @@ class ConfigurationViewController: UIViewController {
     @IBOutlet weak var hostTextField: UITextField!
     
     @IBOutlet weak var debugModeSwitch: UISwitch!
-    
-    override func viewDidLoad() {
+	
+	@IBOutlet weak var deleteEnableSwitch: UISwitch!
+	
+    /// load the UI for the configuration activity
+	override func viewDidLoad() {
         super.viewDidLoad()
 
         // setup text fields
@@ -37,6 +41,7 @@ class ConfigurationViewController: UIViewController {
         hostTextField.autocorrectionType = .no
         
         debugModeSwitch.isOn = UserDefaults.debugFlag
+		deleteEnableSwitch.isOn = UserDefaults.deleteFlag
         
         // dismiss keyboard when tap elsewhere
         let tap: UITapGestureRecognizer = UITapGestureRecognizer(
@@ -48,14 +53,18 @@ class ConfigurationViewController: UIViewController {
     @IBAction func debugModeSwitchValueChanged(_ sender: Any) {
         UserDefaults.set(debugFlag: debugModeSwitch.isOn)
     }
-    
+	
+	@IBAction func deleteEnableSwitchValueChanged(_ sender: Any) {
+		UserDefaults.set(deleteFlag: deleteEnableSwitch.isOn)
+	}
+	
     @objc private func dismissKeyboard() {
         view.endEditing(true)
     }
 }
 
 extension ConfigurationViewController: UITextFieldDelegate {
-    
+    /// Save user input data such as user name and host
     func textFieldDidEndEditing(_ textField: UITextField) {
         let text: String = (textField.text ?? "").trimmingCharacters(in: .whitespaces)
         
@@ -74,6 +83,7 @@ extension ConfigurationViewController: UITextFieldDelegate {
         }
     }
     
+    /// dismiss keyboard when user finishes input data
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         print("dismiss keyboard.")
         textField.resignFirstResponder()

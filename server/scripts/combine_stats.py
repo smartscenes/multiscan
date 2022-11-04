@@ -6,15 +6,15 @@ import argparse
 import collections
 import csv
 import json
-import os
 import logging
+import os
 import sys
-
 
 FORMAT = '%(asctime)-15s [%(levelname)s] %(message)s'
 logging.basicConfig(format=FORMAT)
 log = logging.getLogger('mergeStats')
 log.setLevel(logging.INFO)
+
 
 def loadJson(infile):
     rows = json.load(infile)
@@ -44,7 +44,7 @@ def loadCsv(infile):
 def saveCsv(fieldnames, data, csvfile):
     writer = csv.DictWriter(csvfile, fieldnames=fieldnames, extrasaction='ignore')
     writer.writeheader()
-    for k,v in data.iteritems():
+    for k, v in data.iteritems():
         writer.writerow(v)
 
 
@@ -101,8 +101,8 @@ def main():
     scriptpath = os.path.dirname(os.path.realpath(__file__))
     # Argument processing
     parser = argparse.ArgumentParser(description='Merge index file with stats!')
-    parser.add_argument('-i','--input', dest='input', action='append',
-        help='Input files')
+    parser.add_argument('-i', '--input', dest='input', action='append',
+                        help='Input files')
     parser.add_argument('--format', dest='format', action='store',
                         default='csv', choices=['csv', 'json'],
                         help='Format to use for output')

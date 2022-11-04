@@ -6,34 +6,23 @@
 # pip install flask
 # Run with ./monitor.py (or python monitor.py on Windows)
 
-import argparse
 import json
-import os
 import logging
-import traceback
-import requests
+import os
 from threading import Lock
+
+import requests
 from flask import Flask, request, jsonify
 from werkzeug.utils import secure_filename
 
-import util
+import hydra
+from hydra.utils import get_original_cwd
+from omegaconf import DictConfig, OmegaConf
+
 import index
+from multiscan.utils import io
 
-SCRIPT_DIR = util.getScriptPath()
-INDEX_ALL_BIN = os.path.join(SCRIPT_DIR, 'scripts', 'index_scannet.sh')
-CONVERT_MP4_TO_PREVIEW_BIN = os.path.join(SCRIPT_DIR, 'scripts', 'mp4_preview.sh')
-CONVERT_HP4_TO_THUMBNAIL_BIN = os.path.join(SCRIPT_DIR, 'scripts', 'mp4_thumbnail.sh')
-
-CMD_ARGS = []
-if os.name == 'nt':
-    GIT_BASH = 'C:\\Program Files\\Git\\bin\\bash.exe'
-    CMD_ARGS = [GIT_BASH]
-
-# where scan data is stored under as subdirs with unique ids
-STAGING_FOLDER = os.path.join(SCRIPT_DIR, 'staging')
-
-# informing our management UI of our updated state
-WEBUI = 'http://localhost:3030'
+config = OmegaConf.load(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../config/config.yaml'))
 
 # for locking indexing resources
 INDEX_LOCK = Lock()
@@ -42,10 +31,6 @@ INDEX_LOCK = Lock()
 CONVERT_VIDEO_LOCK = Lock()
 
 app = Flask(__name__)
-app.config['STAGING_FOLDER'] = STAGING_FOLDER
-app.config['indexfile'] = 'scan-net.csv'
-app.config['source'] = 'scan'
-app.config['datasets'] = 'ScanNet'
 
 FORMAT = '%(asctime)-15s [%(levelname)s] %(message)s'
 logging.basicConfig(format=FORMAT)
@@ -86,7 +71,7 @@ def index_scan(dirname):
             'includeAll': True
         })
         if indexed:
-            res = post(WEBUI + '/scans/populate?group=staging&replace=true', list(indexed.values()), log)
+            res = post(config.index.populate_single_url, list(indexed.values()), log)
             if res.get('status') == 'ok':
                 return res.get('response')
             else:
@@ -100,7 +85,12 @@ def index_scan(dirname):
 @app.route('/index')
 def index_all():
     with INDEX_LOCK:
-        ret = util.call(CMD_ARGS + [INDEX_ALL_BIN], log, desc='index_all')
+        ret = io.call([config.index.index_all_bin, 
+                       '--staging_dir', config.index.staging_dir,
+                       '--populate_url', config.index.populate_url,
+                       '--csv', os.path.join(config.index.staging_dir, config.index.csv_file),
+                       '--json', os.path.join(config.index.staging_dir, config.index.json_file)],
+                       log, desc='index all scans')
         if ret < 0:
             resp = jsonify({"message": 'Error indexing all scans'})
             resp.status_code = 500
@@ -117,8 +107,12 @@ def convert_video(dirname):
 
     # Convert
     with CONVERT_VIDEO_LOCK:
-        ret2 = util.call(CMD_ARGS + [CONVERT_HP4_TO_THUMBNAIL_BIN, '--skip-done', path], log, desc='mp4-thumbnail')
-        ret1 = util.call(CMD_ARGS + [CONVERT_MP4_TO_PREVIEW_BIN, '--skip-done', path], log, desc='mp4-to-preview')
+        ret2 = io.call([config.process.thumbnail.mp42thumbnail_bin, '--skip-done', 
+                        path, str(config.process.thumbnail.thumbnail_width)],
+                        log, desc='mp4-to-thumbnail')
+        ret1 = io.call([config.process.thumbnail.mp42preview_bin, '--skip-done', 
+                        path, str(config.process.thumbnail.preview_width)],
+                        log, desc='mp4-to-preview')
         if ret1 < 0 or ret2 < 0:
             resp = jsonify({"message": 'Error converting mp4 to preview/thumbnail'})
             resp.status_code = 500
@@ -131,24 +125,37 @@ def convert_video(dirname):
 def health():
     return 'ok'
 
+@hydra.main(config_path="../config", config_name="config")
+def main(cfg : DictConfig):
+    if not os.path.isabs(cfg.index.index_all_bin):
+        cfg.index.index_all_bin = os.path.join(get_original_cwd(), cfg.index.index_all_bin)
+    if not os.path.isabs(cfg.process.thumbnail.mp42preview_bin):
+        cfg.process.thumbnail.mp42preview_bin = os.path.join(get_original_cwd(), cfg.process.thumbnail.mp42preview_bin)
+    if not os.path.isabs(cfg.process.thumbnail.mp42thumbnail_bin):
+        cfg.process.thumbnail.mp42thumbnail_bin = os.path.join(get_original_cwd(), cfg.process.thumbnail.mp42thumbnail_bin)
+    if not os.path.isabs(cfg.index.staging_dir):
+        cfg.index.staging_dir = os.path.join(get_original_cwd(), cfg.index.staging_dir)
+    if not os.path.isabs(cfg.index.stages_file):
+        cfg.index.stages_file = os.path.join(get_original_cwd(), cfg.index.stages_file)
 
-def main():
-    scriptpath = os.path.dirname(os.path.realpath(__file__))
-    # Argument processing
-    parser = argparse.ArgumentParser(description='Start monitor web service')
-    parser.add_argument('--stages', dest='stagesFile', action='store',
-                        default=os.path.join(scriptpath, 'config/scan_stages.json'),
-                        help='File specifying scan stages')
-    parser.add_argument('--port', dest='port', action='store',
-                        default=5001,
-                        help='Port number')
-    args = parser.parse_args()
 
-    if args.stagesFile:
-        with open(args.stagesFile) as json_data:
+    app.config['STAGING_FOLDER'] = cfg.index.staging_dir
+    app.config['indexfile'] = cfg.index.csv_file
+    app.config['source'] = cfg.index.source
+    app.config['datasets'] = cfg.index.datasets
+
+    if os.path.isfile(cfg.index.stages_file):
+        with open(cfg.index.stages_file) as json_data:
             app.config['stages'] = json.load(json_data)
 
-    app.run(host='0.0.0.0', port=args.port, debug=True)
+    global config
+    config = cfg
+
+    # hydra by default is on another directory
+    cwd = os.getcwd()
+    os.chdir(get_original_cwd())
+    app.run(host=cfg.index.host, port=cfg.index.port, debug=cfg.debug)
+    os.chdir(cwd)
 
 
 if __name__ == "__main__":

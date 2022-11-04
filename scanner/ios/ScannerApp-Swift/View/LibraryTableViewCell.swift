@@ -16,6 +16,7 @@ protocol LibraryTableViewCellDelegate {
     func didCompletedUploadWithoutError(recordingId: String)
 }
 
+/// Manages recorded scenes and allow users to view the details as well as upload them to the server 
 class LibraryTableViewCell: UITableViewCell {
 
     private var url: URL!
@@ -28,17 +29,20 @@ class LibraryTableViewCell: UITableViewCell {
     @IBOutlet weak var deleteButton: UIButton!
     @IBOutlet weak var uploadProgressView: UIProgressView!
     
+    /// Initialization code
     override func awakeFromNib() {
         super.awakeFromNib()
         // Initialization code
     }
 
+    /// Configure the view for the selected state
     override func setSelected(_ selected: Bool, animated: Bool) {
         super.setSelected(selected, animated: animated)
 
         // Configure the view for the selected state
     }
     
+    /// set up cells for the recorded scenes gallery view
     func setupCellWithURL(url: URL) {
         self.url = url
         
@@ -73,10 +77,12 @@ class LibraryTableViewCell: UITableViewCell {
         
         self.infoLabel.textColor = .darkGray
         
+		self.deleteButton.isEnabled = UserDefaults.deleteFlag
         self.uploadProgressView.isHidden = true
     }
     
     // TODO: behavior related stuff probably should be in a controller class
+    /// When the upload button is pressed, upload the files to the server
     @IBAction func uploadButtonTapped(_ sender: Any) {
         DispatchQueue.main.async {
             self.uploadButton.isEnabled = false
@@ -88,6 +94,7 @@ class LibraryTableViewCell: UITableViewCell {
         requestHandler.upload(toUpload: url)
     }
     
+    /// When the delete button is pressed, delete all files
     @IBAction func deleteButtonTapped(_ sender: Any) {
         do {
             try FileManager.default.removeItem(at: url)
@@ -99,8 +106,9 @@ class LibraryTableViewCell: UITableViewCell {
     }
 }
 
+/// Manages UI for the file upload behaviors
 extension LibraryTableViewCell: HttpRequestHandlerDelegate {
-    
+    /// Update the progress bar as files are being uploaded to the server
     func didReceiveUploadProgressUpdate(progress: Float) {
 //        print(progress)
         DispatchQueue.main.async {
@@ -108,21 +116,27 @@ extension LibraryTableViewCell: HttpRequestHandlerDelegate {
         }
     }
     
+    /// Update UI to indicate that upload was successful
     func didCompletedUploadWithError() {
 
         DispatchQueue.main.async {
+			self.titleLabel.textColor = .systemRed
+			self.infoLabel.textColor = .systemRed
             self.uploadButton.isEnabled = true
-            self.deleteButton.isEnabled = true
+            self.deleteButton.isEnabled = UserDefaults.deleteFlag
             self.uploadProgressView.isHidden = true
             
             self.scanTableViewCellDelegate.didCompletedUploadWithError(recordingId: self.url.lastPathComponent)
         }
     }
     
+    /// Update UI to indicate that upload was not successful
     func didCompletedUploadWithoutError() {
         DispatchQueue.main.async {
+			self.titleLabel.textColor = .systemBlue
+			self.infoLabel.textColor = .systemBlue
             self.uploadButton.isEnabled = true
-            self.deleteButton.isEnabled = true
+            self.deleteButton.isEnabled = UserDefaults.deleteFlag
             self.uploadProgressView.isHidden = true
             
             self.scanTableViewCellDelegate.didCompletedUploadWithoutError(recordingId: self.url.lastPathComponent)

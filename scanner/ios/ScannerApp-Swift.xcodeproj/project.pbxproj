@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		22A745F026B0D9F100F93CBF /* Compression.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22A745EF26B0D9F100F93CBF /* Compression.swift */; };
 		FE017D722564782900786973 /* RecordingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE017D712564782900786973 /* RecordingManager.swift */; };
 		FE017D762564980700786973 /* ARCameraRecordingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE017D752564980700786973 /* ARCameraRecordingManager.swift */; };
 		FE017D8B2566346900786973 /* SingleCameraRecordingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE017D8A2566346900786973 /* SingleCameraRecordingManager.swift */; };
@@ -34,14 +35,15 @@
 		FE975BAF245396E900DAB6CB /* RecordingDetailViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE975BAE245396E900DAB6CB /* RecordingDetailViewController.swift */; };
 		FE975BB12453BFF800DAB6CB /* VideoHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE975BB02453BFF800DAB6CB /* VideoHelper.swift */; };
 		FEC93A8B25835EA000811731 /* DualCameraRecordingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC93A8A25835EA000811731 /* DualCameraRecordingManager.swift */; };
+		FEF3BE5325C2A81100D61983 /* StereoDepthRecordingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEF3BE5225C2A81100D61983 /* StereoDepthRecordingManager.swift */; };
 		FEF6FD562539375300C3060B /* RGBRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEF6FD522539375200C3060B /* RGBRecorder.swift */; };
 		FEF6FD572539375300C3060B /* CameraInfoRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEF6FD532539375200C3060B /* CameraInfoRecorder.swift */; };
-		FEF6FD582539375300C3060B /* Compressor.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEF6FD542539375300C3060B /* Compressor.swift */; };
 		FEF6FD592539375300C3060B /* DepthRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEF6FD552539375300C3060B /* DepthRecorder.swift */; };
 		FEF6FD6625414CFA00C3060B /* PopUpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEF6FD6525414CFA00C3060B /* PopUpView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		22A745EF26B0D9F100F93CBF /* Compression.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Compression.swift; path = "ScannerApp-Swift/Model/Compression.swift"; sourceTree = SOURCE_ROOT; };
 		FE017D712564782900786973 /* RecordingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingManager.swift; sourceTree = "<group>"; };
 		FE017D752564980700786973 /* ARCameraRecordingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARCameraRecordingManager.swift; sourceTree = "<group>"; };
 		FE017D8A2566346900786973 /* SingleCameraRecordingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SingleCameraRecordingManager.swift; sourceTree = "<group>"; };
@@ -71,9 +73,9 @@
 		FE975BAE245396E900DAB6CB /* RecordingDetailViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingDetailViewController.swift; sourceTree = "<group>"; };
 		FE975BB02453BFF800DAB6CB /* VideoHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoHelper.swift; sourceTree = "<group>"; };
 		FEC93A8A25835EA000811731 /* DualCameraRecordingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DualCameraRecordingManager.swift; sourceTree = "<group>"; };
+		FEF3BE5225C2A81100D61983 /* StereoDepthRecordingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StereoDepthRecordingManager.swift; sourceTree = "<group>"; };
 		FEF6FD522539375200C3060B /* RGBRecorder.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RGBRecorder.swift; sourceTree = "<group>"; };
 		FEF6FD532539375200C3060B /* CameraInfoRecorder.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CameraInfoRecorder.swift; sourceTree = "<group>"; };
-		FEF6FD542539375300C3060B /* Compressor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Compressor.swift; sourceTree = "<group>"; };
 		FEF6FD552539375300C3060B /* DepthRecorder.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DepthRecorder.swift; sourceTree = "<group>"; };
 		FEF6FD6525414CFA00C3060B /* PopUpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopUpView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -96,6 +98,7 @@
 				FE017D8A2566346900786973 /* SingleCameraRecordingManager.swift */,
 				FEC93A8A25835EA000811731 /* DualCameraRecordingManager.swift */,
 				FE017D752564980700786973 /* ARCameraRecordingManager.swift */,
+				FEF3BE5225C2A81100D61983 /* StereoDepthRecordingManager.swift */,
 			);
 			path = RecordingManager;
 			sourceTree = "<group>";
@@ -161,9 +164,9 @@
 				FE017DAC25709D6D00786973 /* Recorder */,
 				FE19F8B923B6070F00CF174E /* Metadata.swift */,
 				FE19F8BD23B754BD00CF174E /* MotionData.swift */,
+				22A745EF26B0D9F100F93CBF /* Compression.swift */,
 				FE82409523BB42C500ADB6CC /* HttpRequestHandler.swift */,
 				FE1E41CD242451CE00216886 /* MotionManager.swift */,
-				FEF6FD542539375300C3060B /* Compressor.swift */,
 				FE975BAC245107DE00DAB6CB /* UserDefaultsExtension.swift */,
 				FE02EE2E23F61A9C000BD9EE /* Constants.swift */,
 				FE02EE2C23F1D102000BD9EE /* Helper.swift */,
@@ -212,7 +215,7 @@
 			isa = PBXProject;
 			attributes = {
 				LastSwiftUpdateCheck = 1130;
-				LastUpgradeCheck = 1130;
+				LastUpgradeCheck = 1250;
 				ORGANIZATIONNAME = jx16;
 				TargetAttributes = {
 					FE09455C23AD7061003A1CA5 = {
@@ -256,12 +259,14 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				22A745F026B0D9F100F93CBF /* Compression.swift in Sources */,
 				FE02EE2F23F61A9C000BD9EE /* Constants.swift in Sources */,
 				FE09457723AE05C3003A1CA5 /* PreviewView.swift in Sources */,
 				FE3A2E5B2548DD97002FFF36 /* ConfidenceMapRecorder.swift in Sources */,
 				FE09457E23B19A6F003A1CA5 /* LibraryTableViewCell.swift in Sources */,
 				FE19F8BA23B6070F00CF174E /* Metadata.swift in Sources */,
 				FE09456523AD7061003A1CA5 /* ViewController.swift in Sources */,
+				FEF3BE5325C2A81100D61983 /* StereoDepthRecordingManager.swift in Sources */,
 				FE02EE2D23F1D102000BD9EE /* Helper.swift in Sources */,
 				FE02EE2B23F0C750000BD9EE /* ConfigurationViewController.swift in Sources */,
 				FE017D722564782900786973 /* RecordingManager.swift in Sources */,
@@ -273,7 +278,6 @@
 				FE590F672570D71E00577FEB /* Recorder.swift in Sources */,
 				FE19F8BE23B754BD00CF174E /* MotionData.swift in Sources */,
 				FE017D9D256C9A9900786973 /* SimdCodableExtensions.swift in Sources */,
-				FEF6FD582539375300C3060B /* Compressor.swift in Sources */,
 				FE09456123AD7061003A1CA5 /* AppDelegate.swift in Sources */,
 				FEF6FD6625414CFA00C3060B /* PopUpView.swift in Sources */,
 				FEC93A8B25835EA000811731 /* DualCameraRecordingManager.swift in Sources */,
@@ -336,6 +340,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
@@ -396,6 +401,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
@@ -429,14 +435,14 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = G8LR57RXWK;
+				DEVELOPMENT_TEAM = UV7LD48W46;
 				INFOPLIST_FILE = "ScannerApp-Swift/Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.3dgl-hcvc.ScannerApp";
+				PRODUCT_BUNDLE_IDENTIFIER = "eamonn.ScannerApp-old";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -448,14 +454,14 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = G8LR57RXWK;
+				DEVELOPMENT_TEAM = UV7LD48W46;
 				INFOPLIST_FILE = "ScannerApp-Swift/Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.3dgl-hcvc.ScannerApp";
+				PRODUCT_BUNDLE_IDENTIFIER = "eamonn.ScannerApp-old";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";

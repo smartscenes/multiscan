@@ -11,9 +11,11 @@ import CoreLocation
 import Foundation
 import UIKit
 
+/// various helper methods
 struct Helper {
     
     // https://forums.developer.apple.com/thread/101874
+    /// get the last time that the ios device was booted
     static func bootTime() -> Double? {
         var tv = timeval()
         var tvSize = MemoryLayout<timeval>.size
@@ -26,6 +28,7 @@ struct Helper {
     }
 
     // https://stackoverflow.com/questions/42935148/swift-calculate-md5-checksum-for-large-files
+    /// calculate md5 checksum for large files
     static func calculateChecksum(url: URL) -> String? {
         
         let bufferSize = Constants.Server.chuckSize
@@ -95,6 +98,7 @@ struct Helper {
         return gpsLocation
     }
     
+    /// generate an id for the scene based on time and device id
     static func getRecordingId() -> String {
         let dateFormatter = DateFormatter()
 //        dateFormatter.dateFormat = "yyyy-MM-dd_HH-mm-ssZ"
@@ -125,6 +129,7 @@ struct Helper {
     }
     
     // https://medium.com/@rushikeshT/displaying-simple-toast-in-ios-swift-57014cbb9ffa
+    /// display a toast message
     static func showToast(controller: UIViewController, message : String, seconds: Double) {
         let alert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
         alert.view.backgroundColor = .black

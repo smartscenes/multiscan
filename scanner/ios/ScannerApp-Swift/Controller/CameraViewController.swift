@@ -14,6 +14,7 @@ enum RecordingMode {
     case singleCamera
     case dualCamera
     case arCamera
+    case stereoDepth
 }
 
 protocol CameraViewControllerPopUpViewDelegate: class {
@@ -21,6 +22,7 @@ protocol CameraViewControllerPopUpViewDelegate: class {
     func dismissPopUpView()
 }
 
+/// Manage the camera preview when using the App
 class CameraViewController: UIViewController, CameraViewControllerPopUpViewDelegate {
     
     private let mode: RecordingMode
@@ -47,6 +49,7 @@ class CameraViewController: UIViewController, CameraViewControllerPopUpViewDeleg
         fatalError("init(coder:) has not been implemented")
     }
     
+    /// Set up the camera preview activity
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -68,6 +71,7 @@ class CameraViewController: UIViewController, CameraViewControllerPopUpViewDeleg
         view.endEditing(true)
     }
     
+    /// Make sure the screen do not dim
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         
@@ -75,6 +79,7 @@ class CameraViewController: UIViewController, CameraViewControllerPopUpViewDeleg
         UIApplication.shared.isIdleTimerDisabled = true
     }
     
+    /// initialize recording manager and recording mode related set up (Ex: fill options such as single camera, dual camera etc.)
     private func initRecordingManagerAndPerformRecordingModeRelatedSetup() {
         
         switch mode {
@@ -95,33 +100,27 @@ class CameraViewController: UIViewController, CameraViewControllerPopUpViewDeleg
                 let session = recordingManager.getSession() as! AVCaptureMultiCamSession
                 
                 // setup dual cam preview
-                let mainCameraPreviewView = PreviewView()
-                mainCameraPreviewView.videoPreviewLayer.setSessionWithNoConnection(session)
+                let primaryCameraPreviewView = PreviewView()
+                primaryCameraPreviewView.videoPreviewLayer.setSessionWithNoConnection(session)
                 
                 let secondaryPreviewView = PreviewView()
                 secondaryPreviewView.videoPreviewLayer.setSessionWithNoConnection(session)
                 
-                // TODO: tmp solution
-                while session.inputs.count == 0 {
-                    print("...")
-                    usleep(1000)
-                }
-                
-                // main camera preview
-                let mainCameraInput = session.inputs[0] as! AVCaptureDeviceInput
-                guard let mainCameraPort = mainCameraInput.ports(for: .video,
+                // primary camera preview
+                let primaryCameraInput = session.inputs[0] as! AVCaptureDeviceInput
+                guard let primaryCameraPort = primaryCameraInput.ports(for: .video,
                                                                  sourceDeviceType: .builtInWideAngleCamera,
-                                                                 sourceDevicePosition: mainCameraInput.device.position).first
+                                                                 sourceDevicePosition: primaryCameraInput.device.position).first
                 else {
                     print("Could not obtain wide angle camera input ports")
                     return
                 }
-                let mainCameraPreviewLayerConnection = AVCaptureConnection(inputPort: mainCameraPort, videoPreviewLayer: mainCameraPreviewView.videoPreviewLayer)
-                guard session.canAddConnection(mainCameraPreviewLayerConnection) else {
+                let primaryCameraPreviewLayerConnection = AVCaptureConnection(inputPort: primaryCameraPort, videoPreviewLayer: primaryCameraPreviewView.videoPreviewLayer)
+                guard session.canAddConnection(primaryCameraPreviewLayerConnection) else {
                     print("Could not add a connection to the wide-angle camera video preview layer")
                     return
                 }
-                session.addConnection(mainCameraPreviewLayerConnection)
+                session.addConnection(primaryCameraPreviewLayerConnection)
                 
                 // secondary camera preview
                 let secondaryCameraInput = session.inputs[1] as! AVCaptureDeviceInput
@@ -148,12 +147,12 @@ class CameraViewController: UIViewController, CameraViewControllerPopUpViewDeleg
                 }
                 session.addConnection(secondaryCameraPreviewLayerConnection)
                 
-                setupDualPreview(pv1: mainCameraPreviewView, pv2: secondaryPreviewView)
+                setupDualPreview(pv1: primaryCameraPreviewView, pv2: secondaryPreviewView)
                 
                 navigationItem.title = "Dual Camera"
                 
             } else {
-                // Fallback on earlier versions
+                print("Dual camera mode only available for iOS 13.0 or newer.")
             }
         
         case .arCamera:
@@ -164,18 +163,34 @@ class CameraViewController: UIViewController, CameraViewControllerPopUpViewDeleg
                 let session = recordingManager.getSession() as! ARSession
                 let arView = ARView()
                 arView.session = session
+		arView.renderOptions = [.disablePersonOcclusion, .disableDepthOfField, .disableMotionBlur]
+				
+		arView.automaticallyConfigureSession = false
+				
+		arView.debugOptions.insert(.showSceneUnderstanding)
                 
                 setupPreviewView(previewView: arView)
                 navigationItem.title = "Color Camera + LiDAR"
                 
             } else {
                 print("AR camera only available for iOS 14.0 or newer.")
-                // TODO: do something
             }
-        
-//        default:
-//            print("Unexpected, this line of should be unreachable.")
-//            // TODO: do something
+
+        case .stereoDepth:
+            
+            if #available(iOS 13.0, *) {
+                recordingManager = StereoDepthRecordingManager()
+                
+                let previewView = PreviewView()
+                previewView.videoPreviewLayer.session = recordingManager.getSession() as? AVCaptureSession
+                
+                setupPreviewView(previewView: previewView)
+                navigationItem.title = "Stereo Depth"
+                
+            } else {
+                print("Stereo depth only available for iOS 13.0 or newer.")
+            }
+            
         }
         
     }
@@ -234,6 +249,7 @@ class CameraViewController: UIViewController, CameraViewControllerPopUpViewDeleg
         
     }
     
+    /// perform actions when user press the record button
     @objc func recordButtonTapped() {
         
         print("Record button tapped")

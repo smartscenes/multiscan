@@ -8,6 +8,7 @@
 
 import UIKit
 
+/// Pop up view to retrieve user and scene info for the current scene
 class PopUpView: UIView {
     
     let sceneTypes = Constants.sceneTypes
@@ -203,6 +204,7 @@ class PopUpView: UIView {
         
     }
     
+    /// Check if all necessary info has been filled and make the start button valid/invalid
     private func updateStartButton() {
         DispatchQueue.main.async {
             if !self.textFieldIsBeingEdited && self.hasAllRequiredUserInput() {
@@ -213,6 +215,7 @@ class PopUpView: UIView {
         }
     }
     
+    /// Check if all required filed is filled
     private func hasAllRequiredUserInput() -> Bool {
         if !firstName.isEmpty
             && !lastName.isEmpty
@@ -227,7 +230,7 @@ class PopUpView: UIView {
 }
 
 extension PopUpView: UITextFieldDelegate {
-    
+    /// disable start button when editing text field
     func textFieldDidBeginEditing(_ textField: UITextField) {
         textFieldIsBeingEdited = true
 
@@ -235,6 +238,7 @@ extension PopUpView: UITextFieldDelegate {
         updateStartButton()
     }
     
+    /// Store all text field once user is done editing
     func textFieldDidEndEditing(_ textField: UITextField) {
         textFieldIsBeingEdited = false
         

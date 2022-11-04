@@ -9,6 +9,7 @@
 import AVFoundation
 import Foundation
 
+/// Helper methods for the videos such as get thumbnail and get # of frames in the video
 struct VideoHelper {
     
     static func generateThumbnail(videoUrl: URL) -> CGImage? {

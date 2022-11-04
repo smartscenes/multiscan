@@ -58,6 +58,7 @@ class ARCameraRecordingManager: NSObject {
         
         let configuration = ARWorldTrackingConfiguration()
         configuration.frameSemantics = .sceneDepth
+		configuration.sceneReconstruction = .mesh
         session.run(configuration)
         
         let videoFormat = configuration.videoFormat
@@ -89,7 +90,6 @@ extension ARCameraRecordingManager: RecordingManager {
             
             numFrames = 0
             
-            // TODO: consider an if check here to avoid doing this for every recording?
             if let currentFrame = session.currentFrame {
                 cameraIntrinsic = currentFrame.camera.intrinsics
                 
@@ -147,6 +147,7 @@ extension ARCameraRecordingManager: RecordingManager {
         }
     }
     
+    /// write AR camera info to file (Ex: camera encoding type, confidence map format etc.)
     private func writeMetadataToFile() {
         
         let cameraIntrinsicArray = cameraIntrinsic?.arrayRepresentation

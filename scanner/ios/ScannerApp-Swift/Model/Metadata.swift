@@ -9,6 +9,7 @@
 import Foundation
 import UIKit
 
+/// data holder class for device
 class DeviceInfo: Codable {
     private var id: String
     private var type: String
@@ -21,6 +22,7 @@ class DeviceInfo: Codable {
     }
 }
 
+/// data holder class for user
 class UserInfo: Codable {
     private var name: String
     
@@ -29,6 +31,7 @@ class UserInfo: Codable {
     }
 }
 
+/// data holder class for scene
 class SceneInfo: Codable {
     private var description: String
     private var type: String
@@ -41,6 +44,7 @@ class SceneInfo: Codable {
     }
 }
 
+/// data holder class for stream (Ex: encoding type, frequency and # of frames)
 class StreamInfo: Encodable {
     private var id: String
     private var type: String
@@ -59,6 +63,8 @@ class StreamInfo: Encodable {
     }
 }
 
+
+/// data holder class for camera stream
 class CameraStreamInfo: StreamInfo {
     private var resolution: [Int]
     private var intrinsics: [Float]?
@@ -86,6 +92,7 @@ class CameraStreamInfo: StreamInfo {
     }
 }
 
+/// this subclass was used to handle 'frequency' which has been moved to StreamInfo, so it is currently the same as its superclass
 class ImuStreamInfo: StreamInfo {
     // this subclass was used to handle 'frequency' which has been moved to StreamInfo,
     // so it is currently the same as its superclass
@@ -93,6 +100,7 @@ class ImuStreamInfo: StreamInfo {
     // TODO: Add 'precision' info of imu sensor
 }
 
+/// data holder class for metadata
 class Metadata: Encodable {
     
     private var device: DeviceInfo
@@ -100,6 +108,11 @@ class Metadata: Encodable {
     private var scene: SceneInfo
     private var streams: [StreamInfo]
     private var numberOfFiles: Int
+    private var depthConfidenceAvaliable: Bool
+    private var cameraOrientationQuaternionFormat: String
+	private var cameraOrientationEulerAnglesFormat: String
+    private var depthUnit: String
+    private var depthConfidenceValueRange: [Int]
     
     init(username: String, userInputDescription: String, sceneType: String, gpsLocation: [Double],
          streams: [StreamInfo], numberOfFiles: Int) {
@@ -114,6 +127,11 @@ class Metadata: Encodable {
         
         self.streams = streams
         self.numberOfFiles = numberOfFiles
+        self.depthConfidenceAvaliable = true
+        self.cameraOrientationQuaternionFormat = "wxyz"
+		self.cameraOrientationEulerAnglesFormat = "xyz"
+        self.depthConfidenceValueRange = [0, 2]
+        self.depthUnit = "m"
     }
     
     func display() {

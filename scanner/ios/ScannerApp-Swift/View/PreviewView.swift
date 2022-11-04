@@ -22,6 +22,7 @@ The camera preview view that displays the capture output.
 import UIKit
 import AVFoundation
 
+/// The camera preview view that displays the capture output.
 class PreviewView: UIView {
     override class var layerClass: AnyClass {
         return AVCaptureVideoPreviewLayer.self

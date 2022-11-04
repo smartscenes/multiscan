@@ -14,6 +14,7 @@ protocol HttpRequestHandlerDelegate {
     func didCompletedUploadWithoutError()
 }
 
+/// handle http request related (e.g. upload, verify)
 class HttpRequestHandler: NSObject {
 
     private let origin: String = {
@@ -82,6 +83,7 @@ class HttpRequestHandler: NSObject {
         task.resume()
     }
     
+    /// under current setup, the "upload" button on the library view is essentially calling this function. This function uploads files specified by fileUrls from small to large recursively. A verify request is sent after each upload request complete
     func uploadAllFilesOneByOne(fileUrls: [URL]) {
         if fileUrls.isEmpty {
             if let delegate = self.httpRequestHandlerDelegate {
@@ -118,7 +120,8 @@ class HttpRequestHandler: NSObject {
             
             // verify newly uploaded file
             var queryItems = [URLQueryItem]()
-            let params = ["filename": currentFileUrl.lastPathComponent, "checksum": Helper.calculateChecksum(url: currentFileUrl)]
+			let filenameUrl = currentFileUrl.lastPathComponent.addingPercentEncoding(withAllowedCharacters: CharacterSet.urlQueryAllowed.subtracting(CharacterSet(charactersIn: "+")))
+            let params = ["filename": filenameUrl, "checksum": Helper.calculateChecksum(url: currentFileUrl)]
             for (key,value) in params {
                 queryItems.append(URLQueryItem(name: key, value: value))
             }
@@ -184,7 +187,7 @@ class HttpRequestHandler: NSObject {
 }
 
 extension HttpRequestHandler: URLSessionTaskDelegate {
-    
+    /// print error message to console when the session become invalid due to an error
     func urlSession(_ session: URLSession, didBecomeInvalidWithError error: Error?) {
         print("Session has been invalidated")
         if let error = error {
@@ -205,6 +208,7 @@ extension HttpRequestHandler: URLSessionTaskDelegate {
         }
     }
     
+    /// calculate upload progress for the file
     func urlSession(_ session: URLSession, task: URLSessionTask, didSendBodyData bytesSent: Int64, totalBytesSent: Int64, totalBytesExpectedToSend: Int64) {
         let uploadProgress: Float = Float(totalBytesSent) / Float(totalBytesExpectedToSend)
         if let delegate = httpRequestHandlerDelegate {

@@ -14,16 +14,12 @@ import Foundation
 class RGBRecorder: Recorder {
     typealias T = CVPixelBuffer
     
-    // I'm not sure if a separate queue is necessary
-    private let movieQueue = DispatchQueue(label: "movie queue")
+    private let rgbRecorderQueue = DispatchQueue(label: "rgb recorder queue")
     
     private var assetWriter: AVAssetWriter?
     private var assetWriterVideoInput: AVAssetWriterInput?
     private var assetWriterInputPixelBufferAdaptor: AVAssetWriterInputPixelBufferAdaptor?
-    //    private var videoTransform: CGAffineTransform
     private var videoSettings: [String: Any]
-    
-    //    private(set) var isRecording = false
     
     private var count: Int32 = 0
     
@@ -33,7 +29,7 @@ class RGBRecorder: Recorder {
     
     func prepareForRecording(dirPath: String, filename: String, fileExtension: String = "mp4") {
         
-        movieQueue.async {
+        rgbRecorderQueue.async {
             
             self.count = 0
             
@@ -59,13 +55,14 @@ class RGBRecorder: Recorder {
         
     }
     
+    /// write one rgb frame
     func update(_ buffer: CVPixelBuffer, timestamp: CMTime?) {
         
         guard let timestamp = timestamp else {
             return
         }
         
-        movieQueue.async {
+        rgbRecorderQueue.async {
             
             guard let assetWriter = self.assetWriter else {
                 print("Error! assetWriter not initialized.")
@@ -93,19 +90,24 @@ class RGBRecorder: Recorder {
             } else if assetWriter.status == .writing {
                 
 //                print("Status .writing. Accually saving \(self.count) ...")
-                
-                if let adaptor = self.assetWriterInputPixelBufferAdaptor, adaptor.assetWriterInput.isReadyForMoreMediaData {
-                    adaptor.append(buffer, withPresentationTime: timestamp)
-                }
+				if let adaptor = self.assetWriterInputPixelBufferAdaptor {
+					while !adaptor.assetWriterInput.isReadyForMoreMediaData {
+						print("Waiting for assetWriter...")
+						usleep(10)
+					}
+					
+					adaptor.append(buffer, withPresentationTime: timestamp)
+				}
             }
             
             self.count += 1
         }
     }
     
+    /// write one rgb frame
     func update(buffer: CMSampleBuffer) {
         
-        movieQueue.async {
+        rgbRecorderQueue.async {
             
             guard let assetWriter = self.assetWriter else {
                 print("Error! assetWriter not initialized.")
@@ -125,7 +127,7 @@ class RGBRecorder: Recorder {
     
     func finishRecording() {
         
-        movieQueue.async {
+        rgbRecorderQueue.async {
             
             guard let assetWriter = self.assetWriter else {
                 print("Error!")

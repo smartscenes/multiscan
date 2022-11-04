@@ -7,19 +7,18 @@ import collections
 import copy
 import csv
 import json
-import sys
-import os
 import logging
+import os
+import sys
 import traceback
 
-import util
+from multiscan.utils import io
 
 # logger
 FORMAT = '%(asctime)-15s [%(levelname)s] %(message)s'
 logging.basicConfig(format=FORMAT)
 log = logging.getLogger('compute_annotation_stats')
 log.setLevel(logging.INFO)
-
 
 SEGS_FILE = "${name}_vh_clean_2.0.010000.segs.json"
 ANNS_FILE = "${name}.aggregation.json"
@@ -42,7 +41,7 @@ def computeStatistics(json, allLabels=None, allCategories=None):
             segToVerts[seg].append(vert)
         else:
             segToVerts[seg] = [vert]
-    segGroups = json.get('segGroups')    # Array of segment groups
+    segGroups = json.get('segGroups')  # Array of segment groups
     stats = collections.Counter({
         'totalVertices': len(vertToSeg),
         'totalSegments': len(segToVerts),
@@ -81,9 +80,10 @@ def computeStatistics(json, allLabels=None, allCategories=None):
         'labeledObjects': len(labeledObjectIds),
         'labels': len(labels),
         'categories': len(categories),
-        'percentObjectLabeled': 100*len(labeledObjectIds)/len(objectIds) if len(objectIds) > 0 else 0,
-        'percentComplete': 100*stats.get('annotatedVertices')/stats.get('totalVertices') if stats.get('totalVertices') > 0 else 0
-       })
+        'percentObjectLabeled': 100 * len(labeledObjectIds) / len(objectIds) if len(objectIds) > 0 else 0,
+        'percentComplete': 100 * stats.get('annotatedVertices') / stats.get('totalVertices') if stats.get(
+            'totalVertices') > 0 else 0
+    })
     return stats
 
 
@@ -91,10 +91,10 @@ def loadAnnotations(segmentsFilename, annotationFilename):
     with open(segmentsFilename) as segmentsFile:
         segments = json.load(segmentsFile)
     segmentGroups = {'segGroups': []}
-    if util.is_non_zero_file(annotationFilename):
+    if io.is_non_zero_file(annotationFilename):
         try:
             with open(annotationFilename) as annotationFile:
-                segmentGroups = json.load(annotationFile)                
+                segmentGroups = json.load(annotationFile)
         except:
             log.error('Error loading annotation file ' + annotationFilename)
             traceback.print_exc()
@@ -120,7 +120,7 @@ def loadAllAnnotations(annotationFilename):
 def convertAnnotations(annsByModel):
     m = {}
     copyFields = ['workerId', 'annId', 'objectId', 'label', 'id']
-    for modelId,anns in annsByModel.iteritems():
+    for modelId, anns in annsByModel.iteritems():
         segGroups = []
         for ann in anns:
             sg = copy.copy(ann.get('segments'))
@@ -137,7 +137,7 @@ def convertAnnotations(annsByModel):
 
 def loadSegmentsAndCombineAnnotations(segmentsFilename, segmentGroups=None):
     with open(segmentsFilename) as segmentsFile:
-        #print 'Reading ' + segmentsFilename
+        # print 'Reading ' + segmentsFilename
         segments = json.load(segmentsFile)
     if segmentGroups is None:
         segmentGroups = {'segGroups': []}
@@ -173,9 +173,9 @@ def saveOutput(format, data, file):
 
 def saveCounts(data, file):
     writer = csv.writer(file)
-    writer.writerow(['label','count'])
-    for label,count in data.most_common():
-        writer.writerow([label,str(count)])
+    writer.writerow(['label', 'count'])
+    for label, count in data.most_common():
+        writer.writerow([label, str(count)])
 
 
 # Process directory with annotations
@@ -190,13 +190,13 @@ def processDir(args):
             segsFile = os.path.join(dir, SEGS_FILE.replace("${name}", name))
             annsFile = os.path.join(dir, ANNS_FILE.replace("${name}", name))
             # log.info('segsFile=%s,annsFile=%s', segsFile, annsFile)
-            if util.is_non_zero_file(segsFile):
+            if io.is_non_zero_file(segsFile):
                 anns = loadAnnotations(segsFile, annsFile)
                 stats = computeStatistics(anns, allLabels, allCategories)
                 entry = {'id': name}
                 entry.update(stats)
                 allStats.append(entry)
-                #print json.dumps(entry)
+                # print json.dumps(entry)
     labelsFile = args.get('labels')
     if labelsFile is not None:
         with open(labelsFile, 'wb') as labelsOut:
@@ -228,7 +228,7 @@ def processFile(args):
         for name in dirs:
             dir = os.path.join(root, name)
             segsFile = os.path.join(dir, SEGS_FILE.replace("${name}", name))
-            if util.is_non_zero_file(segsFile):
+            if io.is_non_zero_file(segsFile):
                 try:
                     anns = loadSegmentsAndCombineAnnotations(segsFile, annsByModel.get(name))
                     stats = computeStatistics(anns)

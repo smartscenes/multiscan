@@ -8,6 +8,7 @@
 
 import Foundation
 
+/// Default values for various info
 extension UserDefaults {
     
     struct Keys {
@@ -16,6 +17,7 @@ extension UserDefaults {
         static let sceneTypeIndex = "sceneTypeIndexKey"
         static let userInputDescription = "userInputDescriptionKey"
         static let debugFlag = "debugFlagKey"
+		static let deleteFlag = "deleteFlagKey"
         static let host = "hostKey"
     }
     
@@ -89,6 +91,17 @@ extension UserDefaults {
         let userDefaults = UserDefaults.standard
         userDefaults.set(debugFlag, forKey: UserDefaults.Keys.debugFlag)
     }
+	
+	/// deleteFlag
+	class var deleteFlag: Bool {
+		let userDefaults = UserDefaults.standard
+		return userDefaults.bool(forKey: UserDefaults.Keys.deleteFlag)
+	}
+	
+	class func set(deleteFlag: Bool) {
+		let userDefaults = UserDefaults.standard
+		userDefaults.set(deleteFlag, forKey: UserDefaults.Keys.deleteFlag)
+	}
     
     /// host
     class var host: String {

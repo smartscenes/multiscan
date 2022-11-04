@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <array name="sceneType">
+        <item>Apartment</item>
+        <item>Bathroom</item>
+        <item>Bedroom / Hotel</item>
+        <item>Bookstore / Library</item>
+        <item>Classroom</item>
+        <item>Closet</item>
+        <item>ComputerCluster</item>
+        <item>Conference Room</item>
+        <item>Copy Room</item>
+        <item>Dining Room</item>
+        <item>Game room</item>
+        <item>Gym</item>
+        <item>bedroom</item>
+        <item>Hallway</item>
+        <item>Kitchen</item>
+        <item>Laundromat</item>
+        <item>Laundry Room</item>
+        <item>Living room / Lounge</item>
+        <item>Lobby</item>
+        <item>Mailboxes</item>
+        <item>Office</item>
+        <item>Stairs</item>
+        <item>Storage/Basement/Garage</item>
+        <item>Misc.</item>
+    </array>
+</resources>

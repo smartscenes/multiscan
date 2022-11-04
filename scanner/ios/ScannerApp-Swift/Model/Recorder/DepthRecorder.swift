@@ -7,46 +7,51 @@
 //
 
 import Accelerate.vImage
-import Compression
 import CoreMedia
 import CoreVideo
 import Foundation
+import Compression
+import UIKit
+
 
 class DepthRecorder: Recorder {
     typealias T = CVPixelBuffer
     
-    private let depthQueue = DispatchQueue(label: "depth queue")
+    private let depthRecorderQueue = DispatchQueue(label: "depth recorder queue")
     
-    private var fileHandle: FileHandle? = nil
-    private var fileUrl: URL? = nil
+	private var compressedFileHandle: FileHandle? = nil
     private var compressedFileUrl: URL? = nil
     
     private var count: Int32 = 0
+	
+	private var compressor: Compressor?
     
     func prepareForRecording(dirPath: String, filename: String, fileExtension: String = "depth") {
         
-        depthQueue.async {
+		depthRecorderQueue.async { [self] in
             
             self.count = 0
             
             let filePath = (dirPath as NSString).appendingPathComponent((filename as NSString).appendingPathExtension(fileExtension)!)
             let compressedFilePath = (filePath as NSString).appendingPathExtension("zlib")!
-            self.fileUrl = URL(fileURLWithPath: filePath)
-            self.compressedFileUrl = URL(fileURLWithPath: compressedFilePath)
-            FileManager.default.createFile(atPath: self.fileUrl!.path, contents: nil, attributes: nil)
-            
-            self.fileHandle = FileHandle(forUpdatingAtPath: self.fileUrl!.path)
-            if self.fileHandle == nil {
-                print("Unable to create file handle.")
-                return
-            }
+			
+			self.compressedFileUrl = URL(fileURLWithPath: compressedFilePath)
+			FileManager.default.createFile(atPath: self.compressedFileUrl!.path, contents: nil, attributes: nil)
+			self.compressedFileHandle = FileHandle(forUpdatingAtPath: self.compressedFileUrl!.path)
+			if self.compressedFileHandle == nil {
+				print("Unable to create compressed file handle.")
+				return
+			}
+			
+			self.compressor = Compressor(operation: .compression, algorithm: .zlib)
         }
         
     }
     
+    /// record and save the depth info for one frame (this function will also convert the depth map from float32 to flaot16)
     func update(_ buffer: CVPixelBuffer, timestamp: CMTime? = nil) {
         
-        depthQueue.async {
+        depthRecorderQueue.async {
             
             print("Saving frame \(self.count) ...")
             
@@ -59,26 +64,51 @@ class DepthRecorder: Recorder {
         
     }
     
+    func updateWithoutConversion(_ buffer: CVPixelBuffer) {
+        
+        depthRecorderQueue.async {
+            
+            print("Saving depth frame \(self.count) ...")
+            
+//            self.writePixelBufferToFile(buffer: buffer)
+            
+            CVPixelBufferLockBaseAddress(buffer, .readOnly)
+
+            let baseAddress: UnsafeMutableRawPointer = CVPixelBufferGetBaseAddress(buffer)!
+            
+            let bytePerRow = CVPixelBufferGetBytesPerRow(buffer)
+            let height = CVPixelBufferGetHeight(buffer)
+//            let width = CVPixelBufferGetWidth(buffer)
+            let size = bytePerRow * height
+            
+//            let size = CVPixelBufferGetDataSize(buffer)
+            
+            let data = Data(bytesNoCopy: baseAddress, count: size, deallocator: .none)
+			let compressed = self.compressor?.perform(input: data)
+			self.compressedFileHandle?.write(compressed!)
+
+            CVPixelBufferUnlockBaseAddress(buffer, .readOnly)
+            
+            self.count += 1
+        }
+        
+    }
+    
     func finishRecording() {
         
-        depthQueue.async {
-            if self.fileHandle != nil {
-                self.fileHandle!.closeFile()
-                self.fileHandle = nil
-            }
-            
+        depthRecorderQueue.async {
             print("\(self.count) frames saved.")
             
-            self.compressFile()
-            self.removeUncompressedFile()
+            self.compressFinished()
             
         }
         
     }
     
+    /// Display buffer info to console
     func displayBufferInfo(buffer: CVPixelBuffer) {
         
-        depthQueue.async {
+        depthRecorderQueue.async {
             let type = CVPixelBufferGetPixelFormatType(buffer)
             
             let size = CVPixelBufferGetDataSize(buffer)
@@ -101,6 +131,7 @@ class DepthRecorder: Recorder {
     }
     
     // TODO: Float16 is available in iOS 14.0 or newer, which is unexpected, need to consider alternative if this method is needed
+    /// Display depth values to console
     @available(iOS 14.0, *)
     private func displayDepthValues(buffer: CVPixelBuffer) {
         CVPixelBufferLockBaseAddress(buffer, .readOnly)
@@ -127,11 +158,13 @@ class DepthRecorder: Recorder {
         let baseAddress: UnsafeMutableRawPointer = CVPixelBufferGetBaseAddress(buffer)!
         let size = CVPixelBufferGetDataSize(buffer)
         let data = Data(bytesNoCopy: baseAddress, count: size, deallocator: .none)
-        self.fileHandle?.write(data)
+		let compressed = self.compressor?.perform(input: data)
+		self.compressedFileHandle?.write(compressed!)
 
         CVPixelBufferUnlockBaseAddress(buffer, .readOnly)
     }
     
+    /// convert depth values from float32 to float16 and save the values
     @available(iOS 14.0, *)
     private func convertF32DepthMapToF16PixelByPixelAndWriteToFile(buffer: CVPixelBuffer) {
         CVPixelBufferLockBaseAddress(buffer, .readOnly)
@@ -141,30 +174,23 @@ class DepthRecorder: Recorder {
         let height = CVPixelBufferGetHeight(buffer)
         let width = CVPixelBufferGetWidth(buffer)
         let numPixel = height * width
-        
-//        var data = Data()
         let f16Pointer = UnsafeMutableRawPointer.allocate(byteCount: numPixel*2, alignment: 1)
         
         for i in 0..<numPixel {
             let f32 = baseAddress.load(fromByteOffset: i*4, as: Float32.self)
-//            print("32-bit depth[\(i)] in meter: \(f32)")
-//            var f16 = Float16(f32)
-//            print("16-bit depth[\(i)] in meter: \(f16)")
-//            self.fileHandle?.write(Data(bytes: &f16, count: 2))
-            
-//            data.append(Data(bytes: &f16, count: 2))
             f16Pointer.storeBytes(of: Float16(f32), toByteOffset: i*2, as: Float16.self)
-            
         }
-        
-//        self.fileHandle?.write(data)
-        self.fileHandle?.write(Data(bytes: f16Pointer, count: numPixel*2))
+		
+		let data = Data(bytes: f16Pointer, count: numPixel*2)
+		let compressed = self.compressor?.perform(input: data)
+		self.compressedFileHandle?.write(compressed!)
         
         f16Pointer.deallocate()
         
         CVPixelBufferUnlockBaseAddress(buffer, .readOnly)
     }
     
+    /// convert depth values from float32 to float16 and save the values
     private func convertF32DepthMapToF16AndWriteToFile(f32CVPixelBuffer: CVPixelBuffer) {
         
         CVPixelBufferLockBaseAddress(f32CVPixelBuffer, .readOnly)
@@ -211,43 +237,53 @@ class DepthRecorder: Recorder {
 //            let f16 = f16vImageBuffer.data.load(fromByteOffset: i*2, as: Float16.self)
 //            print("16-bit depth[\(i)] in meter: \(f16)")
 //        }
-        
-        self.fileHandle?.write(Data(bytesNoCopy: f16vImageBuffer.data, count: numPixel * 2, deallocator: .none))
+		let data = Data(bytesNoCopy: f16vImageBuffer.data, count: numPixel * 2, deallocator: .none)
+		let compressed = self.compressor?.perform(input: data)
+		self.compressedFileHandle?.write(compressed!)
         
         CVPixelBufferUnlockBaseAddress(f32CVPixelBuffer, .readOnly)
         
     }
     
     // this method is based on apple's sample app Compression-Streaming-Sample
-    private func compressFile() {
-        
-        let algorithm = COMPRESSION_ZLIB
-        let operation = COMPRESSION_STREAM_ENCODE
-        
-//        let compressedFilePath = (fileUrl!.path as NSString).appendingPathExtension("zlib")!
-//        let compressedFileUrl = URL(fileURLWithPath: compressedFilePath)
-        
-        FileManager.default.createFile(atPath: compressedFileUrl!.path, contents: nil, attributes: nil)
-        
-        if let sourceFileHandle = try? FileHandle(forReadingFrom: fileUrl!),
-           let destinationFileHandle = try? FileHandle(forWritingTo: compressedFileUrl!) {
-            
-            Compressor.streamingCompression(operation: operation,
-                                            sourceFileHandle: sourceFileHandle,
-                                            destinationFileHandle: destinationFileHandle,
-                                            algorithm: algorithm) {
-                                                print($0)
+    /// this method is based on apple's sample app Compression-Streaming-Sample
+    private func compressFinished() {
+		let compressed = self.compressor?.finish()
+		self.compressedFileHandle?.write(compressed!)
+		
+		if self.compressedFileHandle != nil {
+			self.compressedFileHandle!.closeFile()
+			self.compressedFileHandle = nil
+		}
+        UIApplication.shared.presentAlertOnTopViewController(message: "Depth value compressed.")
+    }
+}
+
+/// generate a pop up window to the user
+extension UIApplication {
+    private func topViewController(controller: UIViewController? = UIApplication.shared.keyWindow?.rootViewController) -> UIViewController? {
+        if let navigationController = controller as? UINavigationController {
+            return topViewController(controller: navigationController.visibleViewController)
+        }
+        if let tabController = controller as? UITabBarController {
+            if let selected = tabController.selectedViewController {
+                return topViewController(controller: selected)
             }
         }
+        if let presented = controller?.presentedViewController {
+            return topViewController(controller: presented)
+        }
+        return controller
     }
     
-    private func removeUncompressedFile() {
-        do {
-            try FileManager.default.removeItem(at: fileUrl!)
-            print("Uncompressed depth file \(fileUrl!.lastPathComponent) removed.")
-        } catch {
-            print("Unable to remove uncompressed depth file.")
+    func presentAlertOnTopViewController(message: String) {
+        DispatchQueue.main.async {
+            guard let topViewController = UIApplication.shared.topViewController() else { return }
+            let alertController = UIAlertController(title: "Message", message: message, preferredStyle: .alert)
+            alertController.addAction(UIAlertAction(title: "OK", style: .default, handler: nil))
+            alertController.modalPresentationStyle = .overFullScreen
+            alertController.modalTransitionStyle = .crossDissolve
+            topViewController.present(alertController, animated: true, completion: nil)
         }
     }
-    
 }

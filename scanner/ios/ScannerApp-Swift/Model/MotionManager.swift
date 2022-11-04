@@ -8,6 +8,7 @@
 
 import CoreMotion
 
+/// Responsible for retrieving and storing motion data
 class MotionManager {
     
     private let motionManager = CMMotionManager()
@@ -202,14 +203,14 @@ class MotionManager {
         addHeaderToFile(fileUrl: userAccelerationBinaryFileUrl!, encoding: "bin", sensorType: "acce", numOfFrames: numberOfMeasurements)
         addHeaderToFile(fileUrl: magneticFieldBinaryFileUrl!, encoding: "bin", sensorType: "mag", numOfFrames: numberOfMeasurements)
         addHeaderToFile(fileUrl: attitudeBinaryFileUrl!, encoding: "bin", sensorType: "atti", numOfFrames: numberOfMeasurements)
-        addHeaderToFile(fileUrl: gravityBinaryFileUrl!, encoding: "bin", sensorType: "gray", numOfFrames: numberOfMeasurements)
+        addHeaderToFile(fileUrl: gravityBinaryFileUrl!, encoding: "bin", sensorType: "grav", numOfFrames: numberOfMeasurements)
         
         if isDebugMode {
             addHeaderToFile(fileUrl: rotationRateAsciiFileUrl!, encoding: "ascii", sensorType: "rot", numOfFrames: numberOfMeasurements)
             addHeaderToFile(fileUrl: userAccelerationAsciiFileUrl!, encoding: "ascii", sensorType: "acce", numOfFrames: numberOfMeasurements)
             addHeaderToFile(fileUrl: magneticFieldAsciiFileUrl!, encoding: "ascii", sensorType: "mag", numOfFrames: numberOfMeasurements)
             addHeaderToFile(fileUrl: attitudeAsciiFileUrl!, encoding: "ascii", sensorType: "atti", numOfFrames: numberOfMeasurements)
-            addHeaderToFile(fileUrl: gravityAsciiFileUrl!, encoding: "ascii", sensorType: "gray", numOfFrames: numberOfMeasurements)
+            addHeaderToFile(fileUrl: gravityAsciiFileUrl!, encoding: "ascii", sensorType: "grav", numOfFrames: numberOfMeasurements)
         }
     }
     
@@ -305,7 +306,7 @@ class MotionManager {
         let userAccelerationStreamInfo = ImuStreamInfo(id: "acce_1", type: "acce", encoding: "bin", frequency: imuUpdateFrequency, numberOfFrames: numberOfMeasurements, fileExtension: "acce")
         let magneticFieldStreamInfo = ImuStreamInfo(id: "mag_1", type: "mag", encoding: "bin", frequency: imuUpdateFrequency, numberOfFrames: numberOfMeasurements, fileExtension: "mag")
         let attitudeStreamInfo = ImuStreamInfo(id: "atti_1", type: "atti", encoding: "bin", frequency: imuUpdateFrequency, numberOfFrames: numberOfMeasurements, fileExtension: "atti")
-        let gravityStreamInfo = ImuStreamInfo(id: "grav_1", type: "gray", encoding: "bin", frequency: imuUpdateFrequency, numberOfFrames: numberOfMeasurements, fileExtension: "gray")
+        let gravityStreamInfo = ImuStreamInfo(id: "grav_1", type: "grav", encoding: "bin", frequency: imuUpdateFrequency, numberOfFrames: numberOfMeasurements, fileExtension: "grav")
 
         return [rotationRateStreamInfo, userAccelerationStreamInfo, magneticFieldStreamInfo, attitudeStreamInfo, gravityStreamInfo]
     }

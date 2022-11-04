@@ -9,6 +9,7 @@
 import CoreMotion
 import Foundation
 
+/// data holder class for motion data
 class MotionData {
     
     private var timestamp: Int64

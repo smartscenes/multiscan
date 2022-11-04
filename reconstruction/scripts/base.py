@@ -1,8 +1,11 @@
 import os
-import functions.utils as utils
 import open3d as o3d
 import numpy as np
+import logging
 from collections import namedtuple
+import logging
+
+from multiscan.utils import io
 
 FrameFiles = namedtuple('Frames', 'colors depths num')
 
@@ -42,33 +45,39 @@ class ReconBase:
         :return: FrameFiles('colors depths num')
         """
         try:
-            color_folder = self.config.setting.io.color_path
-            depth_folder = self.config.setting.io.depth_path
-            color_files = utils.get_file_list(color_folder)
-            depth_files = utils.get_file_list(depth_folder)
-            list_len = len(color_files)
-            if list_len == len(depth_files):
-                if list_len == 0:
-                    raise ValueError('The number of color and depth images is 0!')
-                return FrameFiles(color_files, depth_files, list_len)
-            else:
-                raise ValueError('The number of color and depth images does not match!')
+            color_folder = self.config.input.color_stream
+            depth_folder = self.config.input.depth_stream
+            depth_files = []
+            color_files = []
+            if os.path.isdir(depth_folder):
+                depth_files = io.get_file_list(depth_folder, ext='.png')
+            if os.path.isdir(color_folder) and self.config.alg_param.integration.with_color:
+                color_files = io.get_file_list(color_folder, ext='.png')
+            list_len = len(depth_files)
+            
+            if list_len == 0:
+                raise ValueError('The number of color and depth images is 0!')
+            elif list_len != len(color_files) and self.config.alg_param.integration.with_color:
+                logging.warning('The number of color and depth images does not match!')
+                list_len = min(list_len, len(color_files))
+                logging.warning(f'{list_len} number of images used')
+            return FrameFiles(color_files, depth_files, list_len)
         except ValueError as e:
-            utils.print_e(e)
+            logging.error(e)
         except IOError as e:
-            utils.print_e(e)
+            logging.error(e)
 
     def read_intrinsic(self):
-        return read_intrinsic(self.config.setting.io.intrinsic_path)
+        return read_intrinsic(self.config.input.intrinsics_file)
 
     def save_folder(self):
-        return self.config.setting.io.save_folder
+        return self.config.output.save_folder
 
     def _frag_folder(self):
-        return self.config.setting.io.static_io.fragment.folder
+        return self.config.static_io.fragment.folder
 
     def _scene_folder(self):
-        return self.config.setting.io.static_io.scene.folder
+        return self.config.static_io.scene.folder
 
     def frag_path(self):
         return os.path.join(self.save_folder(), self._frag_folder())
@@ -76,12 +85,12 @@ class ReconBase:
     def scene_path(self):
         return os.path.join(self.save_folder(), self._scene_folder())
 
-    def setting_path(self):
-        setting_file = self.config.setting.io.static_io.setting_file
-        return os.path.join(self.save_folder(), setting_file)
+    # def setting_path(self):
+    #     setting_file = self.config.static_io.setting_file
+    #     return os.path.join(self.save_folder(), setting_file)
 
     def parallel(self):
-        return self.config.setting.parameters.parallel
+        return self.config.settings.parallel
 
     def run(self):
         """base run function, does nothing
@@ -90,7 +99,7 @@ class ReconBase:
         pass
 
 
-def read_intrinsic(intrinsic_file, width=640, height=480):
+def read_intrinsic(intrinsic_file):
     """read camera intrinsic file
 
     :param width: width of input RGBD frame
@@ -100,22 +109,22 @@ def read_intrinsic(intrinsic_file, width=640, height=480):
     """
     default_intrinsic = o3d.camera.PinholeCameraIntrinsic(
         o3d.camera.PinholeCameraIntrinsicParameters.PrimeSenseDefault)
-    if utils.file_exist(intrinsic_file, '.json'):
+    if io.file_exist(intrinsic_file, '.json'):
         return o3d.io.read_pinhole_camera_intrinsic(intrinsic_file)
     elif intrinsic_file is '':
-        utils.print_w('No camera intrinsic input, default intrinsic was used')
-    elif utils.file_exist(intrinsic_file):
+        logging.warning('No camera intrinsic input, default intrinsic was used')
+    elif io.file_exist(intrinsic_file):
         ext = os.path.splitext(intrinsic_file)
-        utils.print_w('Extension {} is not supported, default intrinsic was used'.format(ext))
+        logging.warning('Extension {} is not supported, default intrinsic was used'.format(ext))
     else:
-        utils.print_w('File {} not exist, default intrinsic was used'.format(intrinsic_file))
+        logging.warning('File {} not exist, default intrinsic was used'.format(intrinsic_file))
 
     return default_intrinsic
 
 
 def global_optimization(posegraph_path, optimized_posegraph_path,
                         max_cor_dist,
-                        pref_loop_closure):
+                        pref_loop_closure, debug=False):
     """global optimization of current posegraph
 
     :param posegraph_path: input file path to initial estimated posegraph
@@ -124,8 +133,9 @@ def global_optimization(posegraph_path, optimized_posegraph_path,
     :param pref_loop_closure: balancing parameter to decide odometry vs loop-closure
     :return: None
     """
+    if debug:
     # to display messages from o3d.pipelines.registration.global_optimization
-    o3d.utility.set_verbosity_level(o3d.utility.VerbosityLevel.Debug)
+        o3d.utility.set_verbosity_level(o3d.utility.VerbosityLevel.Debug)
     method = o3d.pipelines.registration.GlobalOptimizationLevenbergMarquardt()
     criteria = o3d.pipelines.registration.GlobalOptimizationConvergenceCriteria()
     option = o3d.pipelines.registration.GlobalOptimizationOption(

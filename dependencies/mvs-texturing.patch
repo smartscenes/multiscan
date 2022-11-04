@@ -1,0 +1,175 @@
+From 874f0f1f76f4dd73914134f03325d8aeae6b23ef Mon Sep 17 00:00:00 2001
+From: yma50 <sam_mao@sfu.ca>
+Date: Sun, 12 Sep 2021 03:34:31 -0700
+Subject: [PATCH] configurable texture size and padding
+
+---
+ apps/texrecon/arguments.cpp           | 32 ++++++++++++++++++++++++++-
+ libs/tex/generate_texture_atlases.cpp | 32 ++++++++++++---------------
+ libs/tex/settings.h                   |  7 ++++++
+ 3 files changed, 52 insertions(+), 19 deletions(-)
+
+diff --git a/apps/texrecon/arguments.cpp b/apps/texrecon/arguments.cpp
+index 2c9c269..0dbe2a6 100644
+--- a/apps/texrecon/arguments.cpp
++++ b/apps/texrecon/arguments.cpp
+@@ -18,6 +18,11 @@
+ #define SKIP_HOLE_FILLING "skip_hole_filling"
+ #define KEEP_UNSEEN_FACES "keep_unseen_faces"
+ #define NUM_THREADS "num_threads"
++#define MAX_TEXTURE_SIZE "max_texture_size"
++#define PREFER_TEXTURE_SIZE "prefer_texture_size"
++#define MIN_TEXTURE_SIZE "min_texture_size"
++#define PADDING "padding"
++#define WASTE_RATIO "waste_ratio"
+ 
+ Arguments parse_args(int argc, char **argv) {
+     util::Arguments args;
+@@ -87,6 +92,16 @@ Arguments parse_args(int argc, char **argv) {
+         "Write out timings for each algorithm step (OUT_PREFIX + _timings.csv)");
+     args.add_option('\0', NO_INTERMEDIATE_RESULTS, false,
+         "Do not write out intermediate results");
++    args.add_option('\0',"max_texture_size", true,
++        "Max texture size, e.g 8192 (8x1024)");
++    args.add_option('\0',"prefer_texture_size", true,
++        "Prefer texture size, e.g 4096 (4x1024)");
++    args.add_option('\0',"min_texture_size", true,
++        "Min texture size, e.g 256");
++    args.add_option('\0',"padding", true,
++        "Padding allows for mip mapping levels to be generated without blending the texture patches together, default 7 (max_texture_size >> 7)");
++    args.add_option('\0',"waste_ratio", true,
++        "Control the size of waste pixels with padding, default 1.0");
+     args.add_option('\0', NUM_THREADS, true,
+         "How many threads to use. Set 1 for determinism.");
+     args.parse(argc, argv);
+@@ -148,6 +163,16 @@ Arguments parse_args(int argc, char **argv) {
+                 conf.write_intermediate_results = false;
+             } else if (i->opt->lopt == NUM_THREADS) {
+                 conf.num_threads = std::stoi(i->arg);
++            } else if (i->opt->lopt == MAX_TEXTURE_SIZE) {
++                conf.settings.max_texture_size = std::stoi(i->arg);
++            } else if (i->opt->lopt == PREFER_TEXTURE_SIZE) {
++                conf.settings.prefer_texture_size = std::stoi(i->arg);
++            } else if (i->opt->lopt == MIN_TEXTURE_SIZE) {
++                conf.settings.min_texture_size = std::stoi(i->arg);
++            } else if (i->opt->lopt == PADDING) {
++                conf.settings.padding = std::stoi(i->arg);
++            } else if (i->opt->lopt == WASTE_RATIO) {
++                conf.settings.waste_ratio = std::stof(i->arg);
+             } else {
+                 throw std::invalid_argument("Invalid long option");
+             }
+@@ -178,7 +203,12 @@ Arguments::to_string(){
+         << "Outlier removal method: \t" << choice_string<tex::OutlierRemoval>(settings.outlier_removal) << std::endl
+         << "Tone mapping: \t" << choice_string<tex::ToneMapping>(settings.tone_mapping) << std::endl
+         << "Apply global seam leveling: \t" << bool_to_string(settings.global_seam_leveling) << std::endl
+-        << "Apply local seam leveling: \t" << bool_to_string(settings.local_seam_leveling) << std::endl;
++        << "Apply local seam leveling: \t" << bool_to_string(settings.local_seam_leveling) << std::endl
++        << "Max texture size: \t" << std::to_string(settings.max_texture_size) << std::endl
++        << "Prefer texture size: \t" << std::to_string(settings.prefer_texture_size) << std::endl
++        << "Min texture size: \t" << std::to_string(settings.min_texture_size) << std::endl
++        << "Padding level: \t" << std::to_string(settings.padding) << std::endl
++        << "Waste ratio: \t" << std::to_string(settings.waste_ratio) << std::endl;
+ 
+     return out.str();
+ }
+diff --git a/libs/tex/generate_texture_atlases.cpp b/libs/tex/generate_texture_atlases.cpp
+index c4fe6fc..fb8c945 100644
+--- a/libs/tex/generate_texture_atlases.cpp
++++ b/libs/tex/generate_texture_atlases.cpp
+@@ -21,10 +21,6 @@
+ #include "texture_patch.h"
+ #include "texture_atlas.h"
+ 
+-#define MAX_TEXTURE_SIZE (8 * 1024)
+-#define PREF_TEXTURE_SIZE (4 * 1024)
+-#define MIN_TEXTURE_SIZE (256)
+-
+ TEX_NAMESPACE_BEGIN
+ 
+ /**
+@@ -33,14 +29,14 @@ TEX_NAMESPACE_BEGIN
+   * of the maximal possible texture atlas size.
+   */
+ unsigned int
+-calculate_texture_size(std::list<TexturePatch::ConstPtr> const & texture_patches) {
+-    unsigned int size = MAX_TEXTURE_SIZE;
++calculate_texture_size(std::list<TexturePatch::ConstPtr> const & texture_patches, Settings const & settings) {
++    unsigned int size = settings.max_texture_size;
+ 
+     while (true) {
+         unsigned int total_area = 0;
+         unsigned int max_width = 0;
+         unsigned int max_height = 0;
+-        unsigned int padding = size >> 7;
++        unsigned int padding = size >> settings.padding;
+ 
+         for (TexturePatch::ConstPtr texture_patch : texture_patches) {
+             unsigned int width = texture_patch->get_width() + 2 * padding;
+@@ -53,7 +49,7 @@ calculate_texture_size(std::list<TexturePatch::ConstPtr> const & texture_patches
+             unsigned int waste = area - texture_patch->get_size();
+ 
+             /* Only consider patches where the information dominates padding. */
+-            if (static_cast<double>(waste) / texture_patch->get_size() > 1.0) {
++            if (static_cast<double>(waste) / texture_patch->get_size() > settings.waste_ratio) {
+                 /* Since the patches are sorted by size we can assume that only
+                  * few further patches will contribute to the size and break. */
+                 break;
+@@ -62,18 +58,18 @@ calculate_texture_size(std::list<TexturePatch::ConstPtr> const & texture_patches
+             total_area += area;
+         }
+ 
+-        assert(max_width < MAX_TEXTURE_SIZE);
+-        assert(max_height < MAX_TEXTURE_SIZE);
+-        if (size > PREF_TEXTURE_SIZE &&
+-            max_width < PREF_TEXTURE_SIZE &&
+-            max_height < PREF_TEXTURE_SIZE &&
+-            total_area / (PREF_TEXTURE_SIZE * PREF_TEXTURE_SIZE) < 8) {
+-            size = PREF_TEXTURE_SIZE;
++        assert(max_width < settings.max_texture_size);
++        assert(max_height < settings.max_texture_size);
++        if (size > settings.prefer_texture_size &&
++            max_width < settings.prefer_texture_size &&
++            max_height < settings.prefer_texture_size &&
++            total_area / (settings.prefer_texture_size * settings.prefer_texture_size) < 8) {
++            size = settings.prefer_texture_size;
+             continue;
+         }
+ 
+-        if (size <= MIN_TEXTURE_SIZE) {
+-            return MIN_TEXTURE_SIZE;
++        if (size <= settings.min_texture_size) {
++            return settings.min_texture_size;
+         }
+ 
+         if (max_height < size / 2 && max_width < size / 2 &&
+@@ -122,7 +118,7 @@ generate_texture_atlases(std::vector<TexturePatch::Ptr> * orig_texture_patches,
+     {
+ 
+     while (!texture_patches.empty()) {
+-        unsigned int texture_size = calculate_texture_size(texture_patches);
++        unsigned int texture_size = calculate_texture_size(texture_patches, settings);
+ 
+         texture_atlases->push_back(TextureAtlas::create(texture_size));
+         TextureAtlas::Ptr texture_atlas = texture_atlases->back();
+diff --git a/libs/tex/settings.h b/libs/tex/settings.h
+index f2cc563..4ddae6d 100644
+--- a/libs/tex/settings.h
++++ b/libs/tex/settings.h
+@@ -92,6 +92,13 @@ struct Settings {
+     bool local_seam_leveling = true;
+     bool hole_filling = true;
+     bool keep_unseen_faces = false;
++
++    // heuristic of texture size
++    int max_texture_size = 8 * 1024;
++    int prefer_texture_size = 4 * 1024;
++    int min_texture_size = 256;
++    int padding = 7;
++    float waste_ratio = 1.0;
+ };
+ 
+ TEX_NAMESPACE_END
+-- 
+2.34.1
+

@@ -20,7 +20,7 @@ function run {
         if [ "$VERBOSE" = true ]; then
             echo "Create mp4: ${mp4} to ${preview}"
         fi
-        "${FFMPEG}" -y -i "${mp4}" -vf "scale=${OUT_WIDTH}:-1" -pix_fmt yuv420p -r 25 -movflags faststart "${preview}"
+        "${FFMPEG}" -y -i "${mp4}" -vf "scale=${OUT_WIDTH}:-1" -vcodec libx264 -pix_fmt yuv420p -r 25 -movflags faststart "${preview}"
     done
     echo "Done."
 }

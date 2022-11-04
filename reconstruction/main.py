@@ -1,107 +1,92 @@
-import argparse
-from scripts.reconstruct import Reconstruct
-from scripts.configure import Configure
-from scripts.bridge import Bridge, File
 import os
+import psutil
+import hydra
+import logging
 
+from hydra.utils import get_original_cwd
+from omegaconf import DictConfig
 
-def write_intrinsic_json(depth_folder, intrinsic_file):
-    """transform ScanNet intrinsic file to Open3D intrinsic file
+from reconstruction.scripts.reconstruct import Reconstruct
+from reconstruction.scripts.bridge import Bridge, File
 
-    :return: None
-    """
-    import functions.utils as utils
-    import os
-    import numpy as np
-    import open3d as o3d
-    depth_files = utils.get_file_list(depth_folder)
-    depth = o3d.io.read_image(depth_files[0])
-    depth_data = np.asarray(depth)
-    width = np.shape(depth_data)[1]
-    height = np.shape(depth_data)[0]
-    file_name = os.path.splitext(intrinsic_file)[0]
-    utils.intrinsic_txt2json(
-        file_name + '.txt',
-        intrinsic_file,
-        width, height)
+log = logging.getLogger('reconstruct')
 
+def main_from_cfg(cfg : DictConfig):
+    basename = os.path.basename(cfg.output.save_folder)
+    if "%s" in cfg.output.mesh_filename:
+        cfg.output.mesh_filename = cfg.output.mesh_filename % basename
+    if "%s" in cfg.output.decimated_mesh_filename:
+        cfg.output.decimated_mesh_filename = cfg.output.decimated_mesh_filename % basename
+    if "%s" in cfg.output.mesh_alignment_filename:
+        cfg.output.mesh_alignment_filename = cfg.output.mesh_alignment_filename % basename
 
-def main():
-    parser = argparse.ArgumentParser(description='Reconstruct scans!')
-    parser.add_argument('-inc', '--input_color', dest='input_color', action='store', required=True, help='Input directory of color frames')
-    parser.add_argument('-ind', '--input_depth', dest='input_depth', action='store', required=True, help='Input directory of depth frames')
-    parser.add_argument('-ini', '--input_intrinsic', dest='input_intrinsic', action='store', required=False, help='Input json file of camera intrinsic')
-    parser.add_argument('-inp', '--input_poses', dest='input_poses', action='store', required=False, help='Input directory of camera poses')
-    parser.add_argument('-inm', '--input_meta', dest='input_meta', action='store', required=False, help='Input meta file')
-    parser.add_argument('-inconfi', '--input_confidence', dest='input_confidence', action='store', required=False, help='Input confidence file')
-    parser.add_argument('-nop', '--no_parallel', dest='parallel', default=True, action='store_false', required=False, help='Run in parallel')
-    parser.add_argument('-num_cpu', '--num_cpu', dest='num_cpu', action='store', type=int, required=False, help='Maximum number of cpu processes to use')
-    parser.add_argument('-l', '--level', dest='level', action='store', type=int, required=False, help='Confidence map level')
-    parser.add_argument('-thresh', '--thresh', dest='thresh', action='store', type=float, required=False, help='delta filter threshold')
-    parser.add_argument('-s', '--step', dest='step', action='store', type=int, required=False, help='frame skip step')
+    log.info(f'Output diectory set to {cfg.output.save_folder}')
+    log.info(f'Output raw mesh will be saved to {cfg.output.mesh_filename}')
+    log.info(f'Output decimated mesh will be saved to {cfg.output.decimated_mesh_filename}')
+    log.info(f'Output mesh coordinate alignment file will be saved to {cfg.output.mesh_alignment_filename}')
 
-    parser.add_argument('-trunc', '--trunc', dest='trunc', action='store', type=float, required=False, help='frame skip step')
-    parser.add_argument('-voxel', '--voxel', dest='voxel', action='store', type=float, required=False, help='frame skip step')
+    # set number of cpus to use
+    pid = os.getpid()
+    p = psutil.Process(pid)
+    cpu_num = min(len(p.cpu_affinity()), cfg.settings.cpu_num)
+    p.cpu_affinity(p.cpu_affinity()[0:cpu_num])
 
-    parser.add_argument('-inmem', '--in_memory', dest='in_memory', default=False, action='store_true', required=False, help='In memory operation')
-    parser.add_argument('-o', '--output', dest='output', action='store', required=True, help='Output directory of reconstruction results')
-
-    args = parser.parse_args()
-    config = Configure()
-    if args.input_color:
-        config.setting.io.color_path = args.input_color
-    if args.input_depth:
-        config.setting.io.depth_path = args.input_depth
-    if args.input_intrinsic:
-        config.setting.io.intrinsic_path = args.input_intrinsic
-    if args.input_poses:
-        config.setting.io.trajectory_path = args.input_poses
-    if args.input_meta:
-        config.setting.io.meta_path = args.input_meta
-    if args.input_confidence:
-        config.setting.io.confidence_path = args.input_confidence
-    if args.parallel:
-        config.setting.parameters.parallel = args.parallel
-    if args.num_cpu:
-        config.setting.parameters.cpu_num = int(args.num_cpu)
-    if args.level != None:
-        config.setting.parameters.filter.level = int(args.level)
-    if args.thresh != None:
-        config.setting.parameters.filter.delta_thresh = float(args.thresh)
-    if args.step:
-        config.setting.parameters.step = int(args.step)
-    if args.trunc:
-        config.setting.parameters.integration.sdf_trunc = float(args.trunc)
-    if args.voxel:
-        config.setting.parameters.integration.voxel_len_fine = float(args.voxel)
-    if args.output:
-        config.setting.io.save_folder = args.output
-        # level = config.setting.parameters.filter.level
-        # thresh = config.setting.parameters.filter.delta_thresh
-        # trunc = config.setting.parameters.integration.sdf_trunc
-        # voxel = config.setting.parameters.integration.voxel_len_fine
-        # param_str = '_level_'+str(level)+'_thresh_'+str(thresh)+'_trunc_'+str(trunc)+'_voxel_'+str(voxel)
-        # config.setting.io.mesh_filename = os.path.basename(os.path.normpath(args.output))+param_str+'.ply
-        config.setting.io.mesh_filename = os.path.basename(os.path.normpath(args.output))+'.ply'
+    log.info(f'{cpu_num} CPUs will be used in reconstruction')
 
     try:
-        if args.in_memory:
-            bridge = Bridge(config)
-            bridge.open_all()
-            bridge.preprocess()
+        if cfg.settings.with_camera_poses:
+            log.info('Start reconstruction with known camera poses')
+            bridge = Bridge(cfg)
+            if os.path.isdir(cfg.input.depth_stream):
+                log.info('Reconstruction with decoded images')
+                bridge.open_file(cfg.input.metadata_file, File.META)
+                bridge.open_file(cfg.input.trajectory_file, File.POSE)
+            else:
+                log.info('Reconstruction with compressed streams')
+                bridge.open_all()
+            bridge.read_metadata()
         
-            recon = Reconstruct(config, bridge)
+            recon = Reconstruct(cfg, bridge)
             recon.run()
 
             bridge.close_all()
         else:
-            recon = Reconstruct(config)
+            log.info('Start multiway registration reconstruction')
+            recon = Reconstruct(cfg)
             recon.run()
-    except ValueError:
-        raise
-    except IOError:
-        raise
+    except ValueError as e:
+        raise e
+    except IOError as e:
+        raise e
 
+    # reset affinity against all cpus
+    all_cpus = list(range(psutil.cpu_count()))
+    p.cpu_affinity(all_cpus)
+
+
+@hydra.main(config_path="../config", config_name="config")
+def main(cfg : DictConfig) -> None:
+    cfg = cfg.reconstruction
+    # parse inputs
+    if not os.path.isabs(cfg.input.color_stream):
+        cfg.input.color_stream = os.path.join(get_original_cwd(), cfg.input.color_stream)
+    if not os.path.isabs(cfg.input.depth_stream):
+        cfg.input.depth_stream = os.path.join(get_original_cwd(), cfg.input.depth_stream)
+    if not os.path.isabs(cfg.input.confidence_stream):
+        cfg.input.confidence_stream = os.path.join(get_original_cwd(), cfg.input.confidence_stream)
+    if not os.path.isabs(cfg.input.metadata_file):
+        cfg.input.metadata_file = os.path.join(get_original_cwd(), cfg.input.metadata_file)
+    if not os.path.isabs(cfg.input.intrinsics_file):
+        cfg.input.intrinsics_file = os.path.join(get_original_cwd(), cfg.input.intrinsics_file)
+    if not os.path.isabs(cfg.input.trajectory_file):
+        cfg.input.trajectory_file = os.path.join(get_original_cwd(), cfg.input.trajectory_file)
+
+    # parse outputs
+    cfg.output.save_folder = os.path.normpath(cfg.output.save_folder)
+    if not os.path.isabs(cfg.output.save_folder):
+        cfg.output.save_folder = os.path.join(get_original_cwd(), cfg.output.save_folder)
+    
+    main_from_cfg(cfg)
 
 if __name__ == '__main__':
     main()

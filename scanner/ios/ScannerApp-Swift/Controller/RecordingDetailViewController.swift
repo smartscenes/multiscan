@@ -8,6 +8,7 @@
 
 import UIKit
 
+/// UI controller for the recorded scene detail view
 class RecordingDetailViewController: UIViewController {
     
     var recordingUrl: URL?

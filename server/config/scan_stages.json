@@ -1,68 +1,51 @@
 {
-	"stages": [
+	"stages":[
 		{
 			"name": "upload",
-			"output": [ "${id}.mp4", "${id}.json", "${id}.zlib", "${id}.jsonl" ],
-			"optional": true
+			"input": [ "${id}.mp4", "${id}.json", "${id}.depth.zlib", "${id}.confidence.zlib", "${id}.jsonl" ],
+			"output": [ "${id}.mp4", "${id}.json", "${id}.depth.zlib", "${id}.confidence.zlib", "${id}.jsonl" ],
+			"optional": false,
+			"force": true
 		},
 		{
 			"name": "convert",
-			"input": [ "${id}.mp4", "${id}.json", "${id}.zlib", "${id}.jsonl" ],
-			"output": [ "${id}.uncalibrated.sens", "${id}.sens" ],
-			"outputCheck": "any"
-		},
-		{
-			"name": "calibrate",
-			"input": [ "${id}.uncalibrated.sens" ],
-			"output": [ "${id}.sens" ]
+			"input": ["${id}.mp4", "${id}.json", "${id}.depth.zlib", "${id}.confidence.zlib", "${id}.jsonl"],
+			"output": ["outputs/color", "outputs/depth"],
+			"outputCheck": "any",
+			"optional": true
 		},
 		{
 			"name": "recons",
-			"input": [ "${id}.sens" ],
-			"output": [ "${id}.ply" ],
-			"checks": { "valid": "true" } 
+			"input": ["${id}.mp4", "${id}.json", "${id}.depth.zlib", "${id}.confidence.zlib", "${id}.jsonl"],
+			"output": [ "outputs/${id}.ply", "outputs/${id}_decimated.ply"],
+			"optional": false
 		},
 		{
-			"name": "clean",
-			"substeps": 2,
-			"input": [ "${id}.ply" ],
-			"output": [ "${id}.ply" ],
-			"checks": { "aligned": "true" }
-		},
-		{
-			"name": "improve",
-			"input": [ "${id}.sens" ],
-			"output": [ "${id}_vh.ply" ]
-		},
-		{
-			"name": "decimate",
-			"substeps": 3,
-			"input": [ "${id}_vh.ply" ],
-			"output": [ "${id}_vh_clean.ply", "${id}_vh_clean_1.ply", "${id}_vh_clean_2.ply" ]
-		},
-		{
-			"name": "freespace",
-			"input": [ "${id}.sens" ],
-			"output": [ "${id}.grid" ]
+			"name": "texturing",
+			"input": [ "${id}.mp4", "${id}.jsonl", "outputs/${id}_decimated.ply" ],
+			"output": [ "outputs/textured_mesh/${id}.obj", "outputs/textured_mesh/${id}.mtl", "outputs/textured_mesh/${id}_(\\w)+.png", "outputs/${id}_decimated_colored.ply"]
 		},
 		{
 			"name": "segment",
-			"input": [ "${id}_vh_clean_2.ply" ],
-			"output": [ "${id}_vh_clean_2.0.000100.segs.json", "${id}_vh_clean_2.0.001000.segs.json", "${id}_vh_clean_2.0.010000.segs.json" ]
+			"input": ["outputs/${id}_decimated_colored.ply"],
+			"output": [ "outputs/segs/${id}_decimated_colored.*.segs.json", "outputs/segs/${id}_decimated_colored.*.segs-fine.ply", "outputs/segs/${id}_decimated_colored.*.segs-coarse.ply" ],
+			"outputCheck": "any"
 		},
 		{
 			"name": "render",
-			"input": [ "${id}_vh_clean_2.ply" ],
-			"output": [ "${id}_vh_clean_2.png" ]
+			"input": ["outputs/textured_mesh/${id}.obj"],
+			"output": ["outputs/${id}_obj_thumb_low.png", "outputs/${id}_obj_thumb_high.png" ],
+			"outputCheck": "any"
 		},
 		{
 			"name": "thumbnail",
-			"input": [ "${id}_vh_clean_2.png" ],
-			"output": [ "${id}_vh_clean_2_thumb.png" ]
+			"input": [ "${id}.mp4" ],
+			"output": [ "${id}_thumb.jpg" ],
+			"outputCheck": "any"
 		},
 		{
 			"name": "annotation",
-			"input": [ "${id}_vh_clean_2.0.010000.segs.json" ],
+			"input": [ "textured_mesh/segs/texturedMesh.*.segs.json" ],
 			"output": [ "${id}.aggregation.json" ],
 			"optional": true
 		}

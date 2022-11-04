@@ -6,16 +6,20 @@
 import argparse
 import csv
 import json
-import re
-import os
-import sys
 import logging
-
-import util
-import compute_timings as timings
-
+import os
+import re
+import sys
 from glob import glob
+
 from six import string_types
+
+from multiscan.utils import io
+
+import compute_timings as timings
+import util
+
+DATA_OUTPUTS = 'outputs'
 
 FORMAT = '%(asctime)-15s [%(levelname)s] %(message)s'
 logging.basicConfig(format=FORMAT)
@@ -45,12 +49,14 @@ def index_all(dirname, writer, args):
     entries = glob(dirname + '/*/')
     indexed = 0
     for dir in entries:
-        indexed += index_single(dir, dir, writer, args)
+        dir = strip_dirname(dir)
+        subdir = os.path.relpath(dir, dirname)
+        indexed += index_single(dir, subdir, writer, args)
     log.info('Indexed ' + str(indexed) + ' scans')
 
 
 def index_single(dirname, subdir, writer, args):
-    # Indexes a single scannet entry (stored in one directory)
+    # Indexes a single multiscan entry (stored in one directory)
     #  by extract the metadata and appending it to the writer
     meta = extract_meta(dirname, subdir, args)
     if meta:
@@ -75,6 +81,7 @@ def convert_data(data, meta):
         output = data.replace('${id}', meta['id'])
     else:
         output = data
+
     return output
 
 
@@ -82,103 +89,130 @@ def has_scan(dirname):
     dirname = strip_dirname(dirname)
     id = os.path.basename(dirname)
     # If any of these files exists, this directory is likely to be a scan
-    files = [id + '.json', id + '.confidence.zlib', id + '.depth.zlib', id + '.mp4', id + '.jsonl']
+    files = [id + '.json', id + '.confidence.zlib',
+             id + '.depth.zlib', id + '.mp4', id + '.jsonl']
     count = 0
     for file in files:
-        if util.is_non_zero_file(os.path.join(dirname, file)):
+        if io.is_non_zero_file(os.path.join(dirname, file)):
             count += 1
-    if count >= len(files)-1:
+    if count >= len(files) - 1:
         return True
     return False
 
 
 def check_files(filesByName, files, checkAny=False):
     nFilesOk = 0
+    all_files = list(filesByName.keys())
+    
     for file in files:
-        f = filesByName.get(file)
-        if f and f.get('size') > 0:
-            nFilesOk += 1  # OK
+        if file.find('*') != -1 or file.find('+') != -1:
+            file_pattern = re.compile(file)
+            matched_files = [fi for fi in all_files if file_pattern.match(fi)]
+        else:
+            matched_files = [file]
+        for mf in matched_files:
+            f = filesByName.get(mf)
+            if f and f.get('size') > 0:
+                nFilesOk += 1  # OK
     if checkAny:
         return nFilesOk > 0
     else:
-        return nFilesOk == len(files)
+        return nFilesOk >= len(files)
 
+def check_stages_impl(stages, meta, times=None):
+    filesByName = dict((f.get('name'), f) for f in meta.get('files'))
+    stageStatuses = []
+    lastAllOk = ''
+    failed = False
+    for stage in stages:
+        if times is not None:
+            timeRec = timings.getRecord(
+                times, stage.get('name'), stage.get('substeps'))
+        else:
+            timeRec = None
+
+        ok = None  # Don't know if okay
+        if stage.get('output'):
+            outputOk = check_files(filesByName, stage.get(
+                'output'), stage.get('outputCheck') == 'any')
+            if outputOk:
+                ok = True
+        if ok and stage.get('checks'):
+            for k, v in stage.get('checks').items():
+                if meta.get(k) != v:
+                    ok = False
+                    break
+
+        # Check input
+        if stage.get('force'):
+            inputOk = True
+        elif stage.get('input') and times is not None:
+            inputOk = check_files(filesByName, stage.get('input'))
+        else:
+            inputOk = None
+
+        outdated = False
+        if ok is None:
+            if inputOk and not stage.get('optional'):
+                ok = False
+        else:
+            if inputOk:
+                # Check if output is out of date
+                inputs = [filesByName.get(name)
+                            for name in stage.get('input')]
+                inputs = [f for f in inputs if f is not None]
+                lastModifiedInput = util.last_modified(inputs)
+                lastModifiedMillis = lastModifiedInput.get(
+                    'modifiedAtMillis')
+                outputs = [filesByName.get(name)
+                            for name in stage.get('output')]
+                outputs = [f for f in outputs if f is not None]
+                outdated = any(f.get('modifiedAtMillis') <
+                                lastModifiedMillis for f in outputs)
+
+        status = {'name': stage.get('name')}
+        if timeRec is not None:
+            status['secs'] = timeRec['secs']
+            status['time'] = timeRec['time']
+        if outdated:
+            status['outdated'] = True
+        if ok is not None:
+            status['ok'] = ok
+        stageStatuses.append(status)
+        if not failed:
+            if ok:
+                lastAllOk = stage.get('name')
+            elif not stage.get('optional'):
+                failed = True
+    return stageStatuses, lastAllOk
 
 def check_stages(stages_data, meta, times=None):
     converted = convert_data(stages_data, meta)
     stages = converted.get('stages')
     if meta.get('files'):
-        filesByName = dict((f.get('name'), f) for f in meta.get('files'))
-        stageStatuses = []
-        lastAllOk = ''
-        failed = False
-        for stage in stages:
-            if times is not None:
-                timeRec = timings.getRecord(times, stage.get('name'), stage.get('substeps'))
-            else:
-                timeRec = None
-
-            ok = None       # Don't know if okay
-            if stage.get('output'):
-                outputOk = check_files(filesByName, stage.get('output'), stage.get('outputCheck') == 'any')
-                if outputOk:
-                    ok = True
-            if ok and stage.get('checks'):
-                for k, v in stage.get('checks').items():
-                    if meta.get(k) != v:
-                        ok = False
-                        break
-
-            # Check input
-            if stage.get('input'):
-                inputOk = check_files(filesByName, stage.get('input'))
-            else:
-                inputOk = None
-
-            outdated = False
-            if ok is None:
-                if inputOk and not stage.get('optional'):
-                    ok = False
-            else:
-                if inputOk:
-                    # Check if output is out of date
-                    inputs = [filesByName.get(name) for name in stage.get('input')]
-                    inputs = [f for f in inputs if f is not None]
-                    lastModifiedInput = util.lastModified(inputs)
-                    lastModifiedMillis = lastModifiedInput.get('modifiedAtMillis')
-                    outputs = [filesByName.get(name) for name in stage.get('output')]
-                    outputs = [f for f in outputs if f is not None]
-                    outdated = any(f.get('modifiedAtMillis') < lastModifiedMillis for f in outputs)
-
-            status = {'name': stage.get('name')}
-            if timeRec is not None:
-               status['secs'] = timeRec['secs']
-               status['time'] = timeRec['time']
-            if outdated:
-                status['outdated'] = True
-            if ok is not None:
-                status['ok'] = ok
-            stageStatuses.append(status)
-            if not failed:
-                if ok:
-                    lastAllOk = stage.get('name')
-                elif not stage.get('optional'):
-                    failed = True
+        stageStatuses, lastAllOk = check_stages_impl(stages, meta, times)
+        
         meta['stages'] = stageStatuses
         meta['lastOkStage'] = lastAllOk
+
 
 def parse_meta(fpath, log):
     meta = {}
     with open(fpath, 'r') as f:
         data = json.load(f)
         # log.info(data)
-        meta['deviceId'] = data['device']['id']
-        meta['deviceName'] = data['device']['name']
-        meta['sceneType'] = data['scene']['type']
-        meta['userName'] = data['user']['name']
-        meta['numColorFrames'] = data['streams'][0].get('number_of_frames', 0)
-        meta['numDepthFrames'] = data['streams'][1].get('number_of_frames', 0)
+        try:
+            meta['deviceId'] = data['device']['id']
+            meta['group'] = 'staging'
+            meta['deviceName'] = data['device']['name']
+            meta['sceneType'] = data['scene']['type']
+            meta['userName'] = data['user']['name']
+            meta['numColorFrames'] = data['streams'][0].get('number_of_frames', 0)
+            meta['numDepthFrames'] = data['streams'][1].get('number_of_frames', 0)
+        except Exception as e:
+            print(e)
     return meta
+
 
 def strip_dirname(dirname):
     # Make sure dirname don't end in '/', otherwise our poor basename is not going to work well
@@ -195,9 +229,9 @@ def extract_meta(dirname, subdir, args):
     # Extract metadata from csv and create a record
 
     # First check if okay by looking into processed.txt
-    processedFile = dirname + '/processed.txt'
+    processedFile = os.path.join(dirname, 'processed.txt')
     processed = None
-    if util.is_non_zero_file(processedFile):
+    if io.is_non_zero_file(processedFile):
         processed = util.read_properties(processedFile, log)
         if not processed:
             if not args.get('includeAll'):
@@ -208,10 +242,9 @@ def extract_meta(dirname, subdir, args):
 
     # Process log
     times = None
-    processLog = dirname + '/process.log'
+    processLog = os.path.join(dirname, 'process.log')
     if os.path.isfile(processLog):
         times = timings.computeTimings(processLog)
-
 
     # Take dirname and extract the final string as the id
     id = os.path.basename(dirname)
@@ -235,12 +268,13 @@ def extract_meta(dirname, subdir, args):
         createdAt = date_match.group(0)
         # Reformat to be in ISO8601 format
         meta1['createdAt'] = createdAt[0:4] + '-' + createdAt[4:6] + '-' + createdAt[6:8] \
-            + 'T' + createdAt[9:11] + ':' + createdAt[11:13] + ':' + createdAt[13:15]
+            + 'T' + createdAt[9:11] + ':' + \
+            createdAt[11:13] + ':' + createdAt[13:15]
 
     # Look for dirname/id.txt and extract fields into our meta
     # if there is txt file, read it and append to metadata record
     metafile = dirname + '/' + id + '.json'
-    if util.is_non_zero_file(metafile):
+    if io.is_non_zero_file(metafile):
         # Read in txt as dictionary
         # meta = util.read_properties(metafile, log)
         meta = parse_meta(metafile, log)
@@ -255,10 +289,11 @@ def extract_meta(dirname, subdir, args):
     meta.update(meta1)
 
     # Check what files we have
-    meta['files'] = util.list_files(dirname)
-    lastModified = util.lastModified(meta['files'])
+    meta['files'] = util.list_files(dirname, recursive=True)
+    lastModified = util.last_modified(meta['files'])
     if lastModified:
-        meta['updatedAt'] = util.millisToIso(lastModified.get('modifiedAtMillis'))
+        meta['updatedAt'] = util.millis_to_iso(
+            lastModified.get('modifiedAtMillis'))
 
     # Check what stage we are in
     # NOTE: This requires meta to be filled in with id and files!!!
@@ -266,27 +301,36 @@ def extract_meta(dirname, subdir, args):
         check_stages(args.get('stages'), meta, times)
 
     # Check if we have a ply file and how big it is
-    filebase = id # + '_vh_clean_2' if args.get('checkCleaned') else id
+    filebase = id  # + '_vh_clean_2' if args.get('checkCleaned') else id
     plyfile = dirname + '/' + filebase + '.ply'
-    plyfileSize = util.filesize(plyfile)
+    plyfile2 = os.path.join(dirname, DATA_OUTPUTS, filebase + '.ply')
+    plyfileSize = io.filesize(plyfile) or io.filesize(plyfile2)
     meta['hasCleaned'] = args.get('checkCleaned') and plyfileSize > 0
     if plyfileSize > 0:
         meta['fileType'] = 'ply'
         meta['fileSize'] = plyfileSize
 
     # Check if we have a png file
-    pngfile = dirname + '/' + filebase + '.jpg'
-    pngfileSize = util.filesize(pngfile)
+    pngfile = dirname + '/' + filebase + '_thumb.jpg'
+    pngfileSize = io.filesize(pngfile)
     meta['hasScreenshot'] = pngfileSize > 0
 
     # Check if we have a thumbnail file
-    pngfile = dirname + '/' + filebase + '_o3d_thumb.png'
-    pngfileSize = util.filesize(pngfile)
+    pngfile = dirname + '/' + filebase + '_ply_thumb_low.png'
+    pngfileSize = io.filesize(pngfile)
     meta['hasThumbnail'] = pngfileSize > 0
+    # Check if we have a textured mesh thumbnail file
+    pngfile = dirname + '/' + filebase + '_obj_thumb_low.png'
+    pngfileSize = io.filesize(pngfile)
+    meta['hasObjThumbnail'] = pngfileSize > 0
+    # check if we have a textured mesh thumbnail file from mvs-texturing
+    pngfile = os.path.join(dirname, DATA_OUTPUTS, filebase + '_obj_thumb_low.png')
+    pngfileSize = io.filesize(pngfile)
+    meta['hasObjThumbnailMVS'] = pngfileSize > 0
 
     if source == 'nyuv2' and not meta.get('sceneType'):
         idParts = meta.get('id').split('_')
-        meta['sceneType'] = '_'.join(idParts[0:len(idParts)-1])
+        meta['sceneType'] = '_'.join(idParts[0:len(idParts) - 1])
 
     if meta.get('sceneLabel'):
         # Derive sceneName from sceneLabel
@@ -316,15 +360,17 @@ def loadCsv(infile):
 def saveCsv(data, csvfile):
     # Index and output
     fieldnames = ['fullId', 'source', 'id', 'datasets',
-                  'valid', 'aligned', 'hasScreenshot', 'hasThumbnail', 'hasCleaned',
+                  'valid', 'aligned', 
+                  'hasScreenshot', 'hasThumbnail', 'hasObjThumbnail', 'hasObjThumbnailMVS', 'hasCleaned',
                   'fileType', 'fileSize',
-                  'sceneLabel', 'sceneName', 'sceneType',
+                  'sceneLabel', 'sceneName', 'sceneType', 'group',
                   'deviceId', 'deviceName', 'userName',
                   'numDepthFrames', 'numColorFrames', 'numIMUmeasurements',
                   'lastOkStage', 'createdAt', 'updatedAt', 'path']
-    writer = csv.DictWriter(csvfile, fieldnames=fieldnames, extrasaction='ignore')
+    writer = csv.DictWriter(
+        csvfile, fieldnames=fieldnames, extrasaction='ignore')
     writer.writeheader()
-    for k,v in data.items():
+    for k, v in data.items():
         writer.writerow(v)
 
 
@@ -352,17 +398,22 @@ def indexAndSave(args, loadFn, saveFn):
         subdir = None
         if args.get('root'):
             subdir = os.path.relpath(args.get('input'), args.get('root'))
-        index_single(args.get('input'), subdir, lambda r: assignItem(rows, r['id'], r), args)
+        else:
+            subdir = os.path.basename(args.get('input'))
+        index_single(args.get('input'), subdir,
+                     lambda r: assignItem(rows, r['id'], r), args)
     elif args.get('recursive'):
-        index_all_recursive(args.get('input'), lambda r: assignItem(rows, r['id'], r), args)
+        index_all_recursive(args.get('input'),
+                            lambda r: assignItem(rows, r['id'], r), args)
     else:
-        index_all(args.get('input'), lambda r: assignItem(rows, r['id'], r), args)
+        index_all(args.get('input'), lambda r: assignItem(
+            rows, r['id'], r), args)
 
     # output
     allRows = rows
     if args.get('output'):
         # read existing if there
-        isNonEmpty = util.is_non_zero_file(args.get('output'))
+        isNonEmpty = io.is_non_zero_file(args.get('output'))
         if args.get('append') and isNonEmpty:
             with open(args.get('output')) as data:
                 existing = loadFn(data)
@@ -381,13 +432,12 @@ def indexAndSave(args, loadFn, saveFn):
         output.close()
     return rows
 
-
+# TODO: switch to use hydra
 def main():
     scriptpath = os.path.dirname(os.path.realpath(__file__))
     # Argument processing
     parser = argparse.ArgumentParser(description='Index scans!!!')
     parser.add_argument('-i', '--input', dest='input', action='store',
-                        #default='/scan-net/scans/staging',
                         help='Input directory')
     parser.add_argument('-o', '--output', dest='output', action='store',
                         help='Output CSV filename')
@@ -408,10 +458,11 @@ def main():
                         default='https://<SERVER>/models3d/solr/',
                         help='Solr url for updating the solr index')
     parser.add_argument('--datasets', dest='datasets', action='store',
-                        default='ScanNet',
+                        default='MultiScan',
                         help='Name of dataset')
     parser.add_argument('--stages', dest='stagesFile', action='store',
-                        default=os.path.join(scriptpath, 'config/scan_stages.json'),
+                        default=os.path.join(
+                            scriptpath, 'config/scan_stages.json'),
                         help='File specifying scan stages')
     parser.add_argument('--source', dest='source', action='store',
                         default='scan',
@@ -427,4 +478,5 @@ def main():
     index(vars(args))
 
 
-if __name__ == "__main__": main()
+if __name__ == "__main__":
+    main()

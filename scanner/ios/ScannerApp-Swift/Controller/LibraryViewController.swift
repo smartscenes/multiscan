@@ -8,6 +8,7 @@
 
 import UIKit
 
+/// UI class for gallery activity
 class LibraryTableViewController: UITableViewController {
     
     private let fileManager = FileManager.default
@@ -55,22 +56,25 @@ class LibraryTableViewController: UITableViewController {
 }
 
 extension LibraryTableViewController: ScanTableViewCellDelegate {
-    
+    /// reload files after files are deleted successfully
     func deleteSuccess(fileId: String) {
         loadFiles()
         tableView.reloadData()
     }
-    
+
+    /// display a toast when files are not deleted due to errors
     func deleteFailed(fileId: String) {
         loadFiles()
         tableView.reloadData()
         Helper.showToast(controller: self, message: "Failed to delete \(fileId)", seconds: 1)
     }
     
+    /// display a toast message when files did not upload to server due to errors
     func didCompletedUploadWithError(fileId: String) {
         Helper.showToast(controller: self, message: "Failed to upload \(fileId)", seconds: 1)
     }
     
+    /// display a toast message when files are uploaded to server successfully
     func didCompletedUploadWithoutError(fileId: String) {
         Helper.showToast(controller: self, message: "All files in \(fileId) have been uploaded", seconds: 1)
     }

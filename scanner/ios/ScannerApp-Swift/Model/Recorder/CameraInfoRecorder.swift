@@ -10,22 +10,27 @@ import CoreMedia
 import Foundation
 import simd
 
+/// camera info data holder
 class CameraInfo: Encodable {
     
     private var timestamp: Int64
     private var intrinsics: simd_float3x3
     private var transform: simd_float4x4
-    private var eulerAngles: simd_float3
+    private var eulerAngles: simd_float3 // Pitch(x) Yaw(y) Roll(z)
     private var exposureDuration: Int64
+    private var quaternion: simd_float4
     
     internal init(timestamp: TimeInterval, intrinsics: simd_float3x3, transform: simd_float4x4, eulerAngles: simd_float3, exposureDuration: TimeInterval) {
         self.timestamp = Int64(timestamp * 1_000_000_000.0)
         self.intrinsics = intrinsics
         self.transform = transform
         self.eulerAngles = eulerAngles
+        self.quaternion = CameraInfo.toQuaternion(eulerAngles: eulerAngles)
+
         self.exposureDuration = Int64(exposureDuration * 1_000_000_000.0)
     }
     
+    /// get camera info in json format
     func getJsonEncoding() -> String {
         let encoder = JSONEncoder()
 //        encoder.outputFormatting = .prettyPrinted
@@ -34,12 +39,34 @@ class CameraInfo: Encodable {
         let data = try! encoder.encode(self)
         return String(data: data, encoding: .utf8)!
     }
+
+    // convert eulerAngles to Quaternion
+    static func toQuaternion(eulerAngles: simd_float3) -> simd_float4 {
+        let eulerAnglesX = eulerAngles[0]
+        let eulerAnglesY = eulerAngles[1]
+        let eulerAnglesZ = eulerAngles[2]
+
+        let cosX = cos(eulerAnglesX * 0.5)
+        let sinX = sin(eulerAnglesX * 0.5)
+        let cosY = cos(eulerAnglesY * 0.5)
+        let sinY = sin(eulerAnglesY * 0.5)
+        let cosZ = cos(eulerAnglesZ * 0.5)
+        let sinZ = sin(eulerAnglesZ * 0.5)
+
+        let w = cosX * cosY * cosZ + sinX * sinY * sinZ;
+        let x = sinX * cosY * cosZ - cosX * sinY * sinZ;
+        let y = cosX * sinY * cosZ + sinX * cosY * sinZ;
+        let z = cosX * cosY * sinZ - sinX * sinY * cosZ;
+        
+        return simd_float4(w, x, y, z)
+    }
 }
 
+/// retrieve camera info such as intrinsic and timestamp etc.
 class CameraInfoRecorder: Recorder {
     typealias T = CameraInfo
     
-    private let cameraInfoQueue = DispatchQueue(label: "camera info queue")
+    private let cameraInfoRecorderQueue = DispatchQueue(label: "camera info recorder queue")
     
     private var fileHandle: FileHandle? = nil
     private var fileUrl: URL? = nil
@@ -48,7 +75,7 @@ class CameraInfoRecorder: Recorder {
     
     func prepareForRecording(dirPath: String, filename: String, fileExtension: String = "jsonl") {
         
-        cameraInfoQueue.async {
+        cameraInfoRecorderQueue.async {
             
             self.count = 0
             
@@ -65,8 +92,9 @@ class CameraInfoRecorder: Recorder {
         
     }
     
+    /// Update and save the camera info for one frame
     func update(_ cameraInfo: CameraInfo, timestamp: CMTime? = nil) {
-        cameraInfoQueue.async {
+        cameraInfoRecorderQueue.async {
             print("Saving camera info \(self.count) ...")
             
 //            print(cameraInfo.getJsonEncoding())
@@ -77,7 +105,7 @@ class CameraInfoRecorder: Recorder {
     }
     
     func finishRecording() {
-        cameraInfoQueue.async {
+        cameraInfoRecorderQueue.async {
             if self.fileHandle != nil {
                 self.fileHandle!.closeFile()
                 self.fileHandle = nil
