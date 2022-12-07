@@ -1,0 +1,8 @@
+partName,partSemanticName,partSemanticId
+door,door,2
+glass_door,door,2
+drawer,drawer,3
+window,window,4
+lid,lid,5
+cover,lid,5
+lid_cover,lid,5

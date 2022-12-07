@@ -1,0 +1,1 @@
+from .main import main_from_cfg

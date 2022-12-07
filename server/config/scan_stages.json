@@ -1,0 +1,53 @@
+{
+	"stages":[
+		{
+			"name": "upload",
+			"input": [ "${id}.mp4", "${id}.json", "${id}.depth.zlib", "${id}.confidence.zlib", "${id}.jsonl" ],
+			"output": [ "${id}.mp4", "${id}.json", "${id}.depth.zlib", "${id}.confidence.zlib", "${id}.jsonl" ],
+			"optional": false,
+			"force": true
+		},
+		{
+			"name": "convert",
+			"input": ["${id}.mp4", "${id}.json", "${id}.depth.zlib", "${id}.confidence.zlib", "${id}.jsonl"],
+			"output": ["outputs/color", "outputs/depth"],
+			"outputCheck": "any",
+			"optional": true
+		},
+		{
+			"name": "recons",
+			"input": ["${id}.mp4", "${id}.json", "${id}.depth.zlib", "${id}.confidence.zlib", "${id}.jsonl"],
+			"output": [ "outputs/${id}.ply", "outputs/${id}_decimated.ply"],
+			"optional": false
+		},
+		{
+			"name": "texturing",
+			"input": [ "${id}.mp4", "${id}.jsonl", "outputs/${id}_decimated.ply" ],
+			"output": [ "outputs/textured_mesh/${id}.obj", "outputs/textured_mesh/${id}.mtl", "outputs/textured_mesh/${id}_(\\w)+.png", "outputs/${id}_decimated_colored.ply"]
+		},
+		{
+			"name": "segment",
+			"input": ["outputs/${id}_decimated_colored.ply"],
+			"output": [ "outputs/segs/${id}_decimated_colored.*.segs.json", "outputs/segs/${id}_decimated_colored.*.segs-fine.ply", "outputs/segs/${id}_decimated_colored.*.segs-coarse.ply" ],
+			"outputCheck": "any"
+		},
+		{
+			"name": "render",
+			"input": ["outputs/textured_mesh/${id}.obj"],
+			"output": ["outputs/${id}_obj_thumb_low.png", "outputs/${id}_obj_thumb_high.png" ],
+			"outputCheck": "any"
+		},
+		{
+			"name": "thumbnail",
+			"input": [ "${id}.mp4" ],
+			"output": [ "${id}_thumb.jpg" ],
+			"outputCheck": "any"
+		},
+		{
+			"name": "annotation",
+			"input": [ "textured_mesh/segs/texturedMesh.*.segs.json" ],
+			"output": [ "${id}.aggregation.json" ],
+			"optional": true
+		}
+	]
+}

@@ -1,0 +1,83 @@
+# reconstruction high level settings
+settings:
+  debug: false
+  version: "1.0"
+  with_camera_poses: true
+  extract_mesh: true
+  extract_pcd: false
+  parallel: true # multiprocessing during multiway registration
+  cpu_num: 8 # number of cpu units in multiprocessing
+  device_type: cuda # cpu or cuda
+  device_id: 0
+  instant_meshes_path: "/localhome/yma50/miniconda3/envs/multiscan/bin" # binary executable path of instant-meshes
+  instant_meshes_bin: "Instant Meshes" # binary executable filename of instant-meshes
+
+# input and output path
+input:
+  color_stream: path # optional: input color .mp4 stream or folder contains .png images
+  depth_stream: ??? # mandatory: input depth .depth.zlib stream or folder contains .png images
+  confidence_stream: path # input confidence .confidence.zlib stream or folder contains .png images
+  metadata_file: path # input metadata .json file
+  intrinsics_file: path # input depth intrinsics .json file in Open3D format https://github.com/isl-org/Open3D/blob/master/examples/test_data/camera.json
+  trajectory_file: path # input camera poses .jsonl file
+
+output:
+  save_folder: "./scan0/" # folder to save the output integration result
+  mesh_filename: "%s.ply" # output mesh file name
+  decimated_mesh_filename: "%s_decimated.ply" # output decimated mesh file name
+  mesh_alignment_filename: "%s-align-transform.json" # mesh pose before coordinate alignment
+  pcd_filename: "point_cloud.ply" # output point cloud file name
+  intrinsics_filename: "intrinsics.json" # output camera intrinsic file name
+  trajectory_filename: "trajectory.jsonl" # output estimated camera poses
+
+# algorithm parameters
+alg_param:
+  volume_type: TSDFVoxelGrid # ScalableTSDFVolume (cpu only), TSDFVoxelGrid
+
+  extract:
+    weight_threshold: 10
+
+  depth_thresh:
+    max: 3.0 # maximum depth allowed from input RGBD frames
+    min: 0.2 # minimum depth allowed from input RGBD frames
+    diff: 0.07 # maximum depth difference to be considered as correspondence
+    scale: 1000.0 # depth map scale to meters
+
+  frames:
+    batch_size: 100 # divide input frames into batches
+    step: 1 # skip frames with a step size
+    key_step: 5 # set frames as keyframes with a step size
+    use_opencv: false # decode color stream with opencv or decord
+    depth_pixel_size: 2 # bytes
+    confidence_pixel_size: 1 # bytes
+
+  integration:
+    with_color: false
+    block_resolution: 24 # voxel block resolution
+    block_count: 30000 # number of blocks in the volume
+    sdf_trunc: 0.08 # truncation value for signed distance function
+    volume_len: 4.0 # volume length of TSDF cubic space
+    voxel_len_fine: 0.01 # voxel size for integration with initial estimated poses
+    voxel_type:
+      tsdf: Float32
+      weight: UInt16
+      color: UInt16
+
+  # depth maps preprocess
+  depth_filter:
+    level: 2 # confidence level
+    delta_thresh: 0.05 # depth difference threshold in consecutive frames
+    min_portion: 0.1 # skip depth maps with less 0.1 portion of pixels have valid depths
+
+  decimation:
+    crease: 20 # dihedral angle threshold for creases
+    dominant: true # generate a tri/quad dominant mesh instead of a pure tri/quad mesh
+    rosy: 4 # specifies the orientation symmetry type (2, 4, or 6)
+    posy: 4 # specifies the position symmetry type (4 or 6)
+    degree: 4 # decimate to 1/degree number of vertices
+
+
+# hydra configuration log output dir
+hydra:
+  run:
+    dir: "${reconstruction.output.save_folder}/recons-configs/${now:%Y-%m-%d}/${now:%H-%M-%S}"

@@ -1,0 +1,15 @@
+debug: false
+
+random_seed: 123
+input_dir:
+output_dir:
+
+scenes: [] # default [] renders all the scenes, ["scene_00021", "scene_00022"] render 2 unique scenes in the list
+
+arrow_ply_gist_url: "https://gist.githubusercontent.com/SamMaoYS/90175f97ec3ebe58732954ee96bce578/raw/cafdf4f14f3f051e3c757debfae476924a52b309"
+object_semantic_label_map_csv: ../dataset/benchmark/object_semantic_label_map.csv
+
+# hydra configuration log output dir
+hydra:
+  run:
+    dir: "logs/configs/${now:%Y-%m-%d}/${now:%H-%M-%S}"

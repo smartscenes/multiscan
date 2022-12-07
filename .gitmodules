@@ -1,0 +1,9 @@
+[submodule "dependencies/Open3D"]
+	path = dependencies/Open3D
+	url = https://github.com/intel-isl/Open3D.git
+[submodule "dependencies/instant-meshes"]
+	path = dependencies/instant-meshes
+	url = https://github.com/3dlg-hcvc/instant-meshes.git
+[submodule "dependencies/mvs-texturing"]
+	path = dependencies/mvs-texturing
+	url = https://github.com/nmoehrle/mvs-texturing.git

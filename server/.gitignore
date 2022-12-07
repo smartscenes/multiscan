@@ -1,0 +1,28 @@
+*.iml
+
+.idea/
+# virtualenv
+bin/
+include/
+lib/
+local/
+venv/
+.Python
+
+# python
+*.pyc
+
+# data
+tmp/
+result/
+staging/
+checked/
+*.ply
+*.png
+*.jpg
+*.mp4
+*.h264
+*.jsonl
+*.depth
+*.zlib
+

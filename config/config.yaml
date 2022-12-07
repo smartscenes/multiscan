@@ -1,0 +1,136 @@
+debug: false
+
+web_server: "http://localhost:3030"
+
+version: "v1.0"
+
+# server receive upload files configuration
+upload:
+  host: "0.0.0.0"
+  port: 8000
+  tmp_dir: "tmp" # temp location to receive stream
+  staging_dir: "staging" # path to staging folder
+  allowed_extensions: ["zlib", "mp4", "json", "jsonl"]
+  autoprocess: ["convert", "recons", "texturing", "segmentation", "render", "thumbnail", "clean"] # list of steps be auto processed after uploading
+  index_url: "${web_server}/scans/index/"
+  convert_video_url: "${web_server}/scans/monitor/convert-video/"
+  process_trigger_url: "${web_server}/queues/process/add"
+  process_complete_status: "Queued"
+  number_of_files: 5 # expected number of files if this field is not in uploaded metadata file
+  workers: 4
+  worker_class: "sync"
+
+process:
+  host: "0.0.0.0"
+  port: 5000
+  output_folder: outputs
+  staging_dir: ${upload.staging_dir}
+  deps_install_path: "/localhome/yma50/miniconda3/envs/multiscan"
+  process_list: ["convert", "recons", "texturing", "atlasresize", "segmentation", "render", "thumbnail", "alignpairs", "clean"]
+  index_url: "${upload.index_url}"
+  processed_file: "processed.txt"
+  overwrite: false
+  batch_process: false
+  group_white_list: ["staging", "checked"]
+  actions: ${upload.autoprocess} # default actions from command line
+  input_path: path # input process path from command line
+  test: false # run processes without executions
+  scripts_path: "./scripts"
+  reconstruction_path: "../reconstruction"
+
+  decode:
+    color_folder: "color"
+    depth_folder: "depth"
+    depth_format: ".png" # options: .png, .exr
+    level: 2 # confidence level
+    depth_delta: 0.05
+    pixel_size: 2 # depth pixel size in bytes
+    confidence_folder: "confidence"
+    step: 10 # skip frames with a step size
+    depth_step: 1
+    color_downscale: 1
+    cpus: 8
+
+  texturing:
+    method: MVS_TEXTURING
+    result_folder: "./textured_mesh"
+    # msv-texturing configs
+    msv_lib_path: "${process.deps_install_path}/lib"
+    msv_bin_path: "${process.deps_install_path}/bin"
+    data_term: "area" # area or gmi
+    outlier_removal: "gauss_clamping" # photometric outlier (pedestrians etc.) removal method: {none, gauss_damping, gauss_clamping}
+    keep_unseen_faces: true
+    max_texture_size: 8192
+    prefer_texture_size: 4096
+    min_texture_size: 256
+    padding: 7
+    waste_ratio: 1.0
+    mesh_name: "%s" # scanID
+    step: ${process.decode.step} # skip frames with a step size
+    cpus: 8
+    clean_min_face_num: 50
+    atlas_max_size: 2048 # downscale large texture atlas to this size
+  
+  segmentation:
+    result_folder: "segs_tri"
+    lib_path: "${process.deps_install_path}/lib"
+    bin_path: "${process.deps_install_path}/bin"
+    segs_ext: ".%6f.segs.json"
+    # hierachical segmentation has two processing stages
+    kthesh: [0.005, 0.01, 0.05, 0.1, 0.5]
+    seg_min_verts: 50
+    color_weight: 0.5
+    color_kthesh: [0.5, 2, 4, 4, 8]
+    color_seg_min_verts: 50
+    render: true
+    face_based: true
+    render_res: [640, 480]
+  
+  render:
+    low_res: [320, 240] # [width, height]
+    high_res: [1280, 960] # [width, height]
+    low_res_ply: "_ply_thumb_low.png"
+    high_res_ply: "_ply_thumb_high.png"
+    low_res_obj: "_obj_thumb_low.png"
+    high_res_obj: "_obj_thumb_high.png"
+
+  thumbnail:
+    mp42preview_bin: "scripts/mp4_preview.sh"
+    mp42thumbnail_bin: "scripts/mp4_thumbnail.sh"
+    thumbnail_width: 200 # thumbnail image width of the uploaded video
+    preview_width: 320 # preview .mp4 video frame width
+    thumbnail_ext: "_thumb.jpg"
+    preview_ext: "_preview.mp4"
+  
+  align:
+    scans_list_url: "${web_server}/scans/list"
+    tmp_folder: "tmp_align" # tmp folder for intermediate results
+    align_ext: "_pair_align.json"
+
+# add reconstruction.yaml configurations
+defaults:
+    - reconstruction: reconstruction
+    - _self_ # https://hydra.cc/docs/upgrades/1.0_to_1.1/default_composition_order
+
+# override the default instant meshes path
+reconstruction:
+  settings:
+    instant_meshes_path: "${process.deps_install_path}/bin"
+
+index:
+  host: "0.0.0.0"
+  port: 5001
+  populate_url: "${web_server}/scans/populate?replace=all"
+  populate_single_url: "${web_server}/scans/populate?group=staging&replace=true"
+  stages_file: "config/scan_stages.json" # file specifying scan stages
+  csv_file: "multiscan.csv"
+  json_file: "multiscan.all.json"
+  index_all_bin: "scripts/index_multiscan.sh"
+  staging_dir: ${upload.staging_dir}
+  source: "scan"
+  datasets: "MultiScan"
+
+# hydra configuration log output dir
+hydra:
+  run:
+    dir: "logs/server-configs/${now:%Y-%m-%d}/${now:%H-%M-%S}"

@@ -1,0 +1,13 @@
+debug: false
+
+input_path:
+output_path:
+random_seed: 1
+scans_split_csv: benchmark/scans_split.csv
+object_semantic_label_map_csv: benchmark/object_semantic_label_map.csv
+part_semantic_label_map_csv: benchmark/part_semantic_label_map.csv
+
+# hydra configuration log output dir
+hydra:
+  run:
+    dir: "logs/configs/${now:%Y-%m-%d}/${now:%H-%M-%S}"
