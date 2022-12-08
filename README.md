@@ -31,15 +31,44 @@ Unzip files:
 ```bash
 cd <output_dir>
 unzip "*.zip"
-[optional] rm *.zip
 ```
 
 The downloaded dataset would follow this [file system structure](https://3dlg-hcvc.github.io/multiscan/read-the-docs/dataset/index.html#file-system-structure).
 
-MultiScan data includes:
+MultiScan dataset includes:
 1. Acquired data from scanner app: [doc](https://3dlg-hcvc.github.io/multiscan/read-the-docs/dataset/files/acquired.html)
 2. Output data from processing server: [doc](https://3dlg-hcvc.github.io/multiscan/read-the-docs/dataset/files/output.html)
 3. Annotation data: [doc](https://3dlg-hcvc.github.io/multiscan/read-the-docs/dataset/files/annotation.html)
+
+## MultiScan Benchmark Dataset
+
+Download and copy MultiScan benchmark dataset [download script](https://forms.gle/YuE2gZTMSBoJiLDh7) to `[PROJECT_ROOT]/dataset` directory, and follow the instructions bellow to dowload the MultiScan benchmark dataset:
+
+#### Object instance segmentation
+Preprocessed object instance segmentation data download:
+```bash
+./dataset/download_benchmark_dataset.sh -o <output_dir>
+```
+
+#### Part instance segmentation
+Preprocessed part instance segmentation data download:
+```bash
+./dataset/download_benchmark_dataset.sh -p <output_dir>
+```
+
+#### Mobility prediction
+Preprocessed articulated objects dataset download:
+```bash
+./dataset/download_benchmark_dataset.sh -a <output_dir>
+```
+
+Unzip files with:
+```bash
+cd <output_dir>
+unzip "*.zip"
+```
+
+Please checkout [benchmark dataset doc](dataset/README.md) for information about preprocessed dataset download and the preprocess scripts.
 
 -----------------------------------
 
