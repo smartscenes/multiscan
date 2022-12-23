@@ -27,7 +27,7 @@ Getting up and running is as easy as 1, 2, 3.
     ```
     npm start
     ```
-By default web-ui will start at `http://localhost:3030/`.
+By default web server will start at `http://localhost:3030/`.
 
 ### Link Staged Scans
 In order to make web-ui has access to staged scans, such as preview video, thumbnail images, etc. we need to create symbolic links to the `staging` directory. By following the command lines below:
@@ -46,22 +46,6 @@ ln -s "$(realpath data)" public/data
 ```
 
 ## Endpoints
-
-Web pages
-```
-/scans/manage                           # Main manage view (supports feather style querying)
-/scans/annotations                      # IFrame of annotations
-/scans/devices-id                       # Devices by id
-/scans/devices-name                     # Devices by name
-/scans/scenes                           # Scenes by name
-/scans/scenes-type                      # Scenes by type 
-/scans/users                            # Users
-/scans/tags                             # Tags
-/scans/browse                           # Browse view
-/scans/browse/nyu                       # NYU scans
-/scans/browse/nyu/frames                # NYU frames
-/scans/process                          # Process queue view
-```
 
 Web services
 ```
