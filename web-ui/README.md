@@ -1,6 +1,6 @@
 # Web UI
 
-Web-UI is an interactive interface for providing an overview of staged scan data, managing scan data, controlling reconstruction process and mesh annotation pipeline. We use an indexing server, to index all the uploaded scans into a single csv file, which contains the ID and the info about scans. The indexed scans will be visualized in the web UI, and allows manual reprocessing the collected scans if needed. In the following sections we explain how users setup the web UI and how to interact with it.
+Web-UI is an interactive interface for providing an overview of staged scan data, managing scan data, controlling reconstruction process and mesh annotation pipeline. We use an indexing server, to index all the uploaded scans into a single csv file, which contains the ID and the info about scans. The indexed scans will be visualized in the web UI, and allows manual reprocessing the collected scans if needed. In the following sections we explain how users setup the web UI and how to interact with it. The link to the documentation is provided [here](https://3dlg-hcvc.github.io/multiscan/read-the-docs/web-ui/index.html)
 
 ## Web UI Server
 
