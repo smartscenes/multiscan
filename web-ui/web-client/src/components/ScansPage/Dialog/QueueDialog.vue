@@ -45,7 +45,7 @@
                         <template v-for="(item, index) in queuedData">
                             <div :key="item.id" class="py-3 d-flex align-center justify-center">
                                 <img v-if="item.videoThumbnailUrl"
-                                     :src="'http://spathi.cmpt.sfu.ca' + item.videoThumbnailUrl"
+                                     :src="config.externalURLs.serverBaseURL + item.videoThumbnailUrl"
                                      style="object-fit: contain; height: 80px" class="mr-4" alt="">
                                 <p v-else class="text-center my-5 mr-9 ml-5">No Video<br/>Thumbnail</p>
                                 <div class="mr-7">
@@ -109,6 +109,7 @@ export default {
     },
     data() {
         return {
+            config: this.$config,
             isLoading: false,
             // queuedData: [],
             isPaused: false,

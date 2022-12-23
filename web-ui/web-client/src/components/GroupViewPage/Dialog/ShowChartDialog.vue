@@ -1,5 +1,5 @@
 <template>
-    <v-dialog v-model="showDialog" persistent width="800">
+    <v-dialog v-model="showDialog" persistent width="1000">
         <v-card>
             <v-card-title style="opacity: 0.8">
                 <span>Statistics</span>

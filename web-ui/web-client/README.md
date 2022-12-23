@@ -4,7 +4,7 @@
 This project uses [Vue.js](https://v2.vuejs.org/) v2 framework with [Axios](https://axios-http.com/) as the HTTP client. For UI design, it follows [Material Design](https://material.io/design) with [Vuetify](https://vuetifyjs.com/en/) framework.
 
 ## Configuration
-For configs of [Vue.js](https://v2.vuejs.org/), please go to `vue.config.js`, for more custome configs, please refer to [Vue.js config reference](https://cli.vuejs.org/config/).
+For configs of [Vue.js](https://v2.vuejs.org/), please go to `vue.config.json`, for more custome configs, please refer to [Vue.js config reference](https://cli.vuejs.org/config/).
 
 For configs of [Axios](https://axios-http.com/), please go to `src/axios/index.js`.
 

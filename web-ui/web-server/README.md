@@ -1,13 +1,15 @@
 # MultiScan WebUI
 
-> Web interface for MultiScan
+> Web backend server interface for MultiScan
 
 
 ## About
 
-Web-UI is an interactive interface for providing an overview of staged scan data, managing scan data, controlling reconstruction process and mesh annotation pipeline.
+Web-UI is an interactive interface for providing an overview of staged scan data, managing scan data, controlling reconstruction process and mesh annotation pipeline. This is the backend server for Web UI.
 
 This project uses [Feathers](http://feathersjs.com). An open source web framework for building modern real-time applications.
+
+Here is the link to the Web UI frontend [client code](../web-client).
 
 ## Getting Started
 

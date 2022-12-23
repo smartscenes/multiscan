@@ -5,7 +5,7 @@
                    style="width: 38px; height: 38px; right: 7px; top: 7px">
                 <v-icon color="white">mdi-close</v-icon>
             </v-btn>
-            <video autoplay :src="videoUrl" controls style="min-width: 650px"/>
+            <video autoplay :src="videoUrl" controls style="min-width: 800px"/>
         </v-card>
     </v-dialog>
 </template>

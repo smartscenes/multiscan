@@ -1,5 +1,5 @@
 <template>
-    <v-dialog v-model="showDialog" persistent width="600" scrollable>
+    <v-dialog v-model="showDialog" persistent width="1000" scrollable>
         <v-card>
             <v-card-title style="opacity: 0.8">
                 <span>Download Files</span>

@@ -1,0 +1,11 @@
+{
+  "baseURL": "https://spathi.cmpt.sfu.ca/multiscan/webui/",
+
+  "externalURLs": {
+    "segmentAnnotatorBaseURL": "https://aspis.cmpt.sfu.ca/stk-multiscan/multiscan/segment-annotator?condition=manual&format=textured-v1.1&taskMode=fixup&startFrom=latest&segmentType=triseg-finest-hier-v1.1",
+    "articulationAnnotatorBaseURL": "https://aspis.cmpt.sfu.ca/stk-multiscan/motion-annotator??labelType=object-part&useDatGui=true",
+    "obbAnnotatorBaseURL": "https://aspis.cmpt.sfu.ca/stk-multiscan/multiscan/scan-obb-aligner?format=textured-v1.1&partType=articulation-parts&obbAlignPartType=articulation-parts&obbAlignTask=multiscan-annotate-obb&allowAllSupportedParts=true&includeDefaultLabelRemaps=false&annotateObbFrom=latest",
+    "thumbnailImgBaseURL": "https://spathi.cmpt.sfu.ca/multiscan/webui/data/multiscan/scans/staging",
+    "serverBaseURL": "localhost"
+  }
+}

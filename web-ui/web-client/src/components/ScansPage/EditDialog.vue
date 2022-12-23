@@ -114,9 +114,9 @@ export default {
                 that.$refs.editForm.reset();
                 if (response.status === 200) {
                     that.$parent.showMessageBar("Edit successfully", "success");
-                    that.$parent.getTableData(false);
                 } else {
                     that.$parent.showMessageBar("Error: Failed to edit", "error");
+                    that.$parent.getTableData(false);
                 }
             });
         },

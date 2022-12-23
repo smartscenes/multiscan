@@ -20,7 +20,7 @@
                 </v-list>
             </v-menu>
 
-            <v-btn :to="{name: 'AnnotationsPage'}" text>Annotations</v-btn>
+<!--            <v-btn :to="{name: 'AnnotationsPage'}" text>Annotations</v-btn>-->
 
 
             <v-spacer></v-spacer>
@@ -55,7 +55,7 @@ export default {
         usernameInput: "",
         username: "",
         views: [
-            {name: 'Scene Names', value:'sceneNames'},
+            {name: 'Scene IDs', value:'sceneNames'},
             {name: 'Scene Types', value: 'sceneTypes'},
             {name: 'Devices', value: 'devices'},
             {name: 'Tags', value: 'tags'},
