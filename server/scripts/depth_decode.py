@@ -202,7 +202,7 @@ class DepthDecode:
             pool = Pool(os.cpu_count())
             params = {}
             params['tmp'] = tmp.name
-            params['tmp_confi'] = tmp_confi.name
+            params['tmp_confi'] = tmp_confi.name if confidence_filter else None
             params['depth_type'] = depth_type
             params['height'] = self.height
             params['width'] = self.width
