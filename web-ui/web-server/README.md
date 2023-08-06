@@ -19,7 +19,7 @@ Getting up and running is as easy as 1, 2, 3.
 2. Install your dependencies
     
     ```
-    cd web-ui; npm install
+    cd web-ui/web-server; npm install
     ```
 
 3. Start your app
