@@ -7,7 +7,7 @@ find_package(RapidJSON)
 include_directories(${RAPIDJSON_INCLUDE_DIRS})
 
 # include Boost
-set(Boost_USE_STATIC_LIBS OFF)
+# set(Boost_USE_STATIC_LIBS OFF)
 find_package(Boost 1.60 QUIET COMPONENTS program_options REQUIRED)
 
 if (Boost_FOUND)
