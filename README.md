@@ -22,14 +22,10 @@ The repository includes:
 
 ## MultiScan Dataset
 
-Download and copy MultiScan dataset [download script](https://forms.gle/YuE2gZTMSBoJiLDh7) to `[PROJECT_ROOT]/dataset` directory, and run download script to dowload the dataset:
+Download our main dataset from [Hugging Face](https://huggingface.co/datasets/3dlg-hcvc/MultiScan).
 
-```bash
-./dataset/download.sh <output_dir>
-```
 Unzip files:
 ```bash
-cd <output_dir>
 unzip "*.zip"
 ```
 
